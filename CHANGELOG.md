@@ -8,26 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Initial project setup with JSON:API SDK foundation
-- Basic JSON:API document creation and validation
-- Error handling utilities
-- Type-safe Pydantic models
-- Resource object and relationship support
-- Utility functions for common JSON:API operations
-
-### Changed
-
-### Deprecated
-
-### Removed
-
-### Fixed
-
-### Security
-
-## [0.1.0] - 2024-01-01
-
-### Added
 - Initial release
 - Basic JSON:API document creation and validation
 - Error handling utilities

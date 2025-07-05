@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-"""
-Changelog management script for midil-kit.
-
-This script helps generate and manage changelog entries based on git commits
-following conventional commit format.
-"""
-
 import argparse
 import re
 import subprocess
@@ -199,6 +191,11 @@ class ChangelogManager:
             lines.insert(insert_index, replacement)
             new_content = "\n".join(lines)
 
+        # Ensure proper spacing between sections (but don't add extra newlines)
+        new_content = re.sub(r"\n## \[", "\n\n## [", new_content)
+        # Remove any excessive newlines (more than 2 consecutive newlines)
+        new_content = re.sub(r"\n{3,}", "\n\n", new_content)
+
         # Write back to file
         with open(self.changelog_file, "w") as f:
             f.write(new_content)
@@ -218,6 +215,19 @@ class ChangelogManager:
         except subprocess.CalledProcessError:
             return None
 
+    def get_initial_commit_date(self) -> str:
+        """Get the date of the initial commit."""
+        try:
+            result = subprocess.run(
+                ["git", "log", "--reverse", "--pretty=format:%ad", "--date=short"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            return result.stdout.strip().split("\n")[0]
+        except subprocess.CalledProcessError:
+            return datetime.now().strftime("%Y-%m-%d")
+
     def create_release(self, version: str, release_type: str = "patch") -> str:
         """Create a new release by updating version and changelog."""
         # Get the latest tag
@@ -230,9 +240,14 @@ class ChangelogManager:
         with open(self.changelog_file, "r") as f:
             content = f.read()
 
-        # Replace [Unreleased] with the new version
-        today = datetime.now().strftime("%Y-%m-%d")
-        new_version_section = f"## [{version}] - {today}\n"
+        # Get the date of the most recent commit for this release
+        commits = self.get_git_commits(since=latest_tag)
+        if commits:
+            release_date = commits[0]["date"]  # Most recent commit date
+        else:
+            release_date = datetime.now().strftime("%Y-%m-%d")
+
+        new_version_section = f"## [{version}] - {release_date}\n"
 
         # Find and replace the [Unreleased] section
         pattern = r"## \[Unreleased\](.*?)(?=\n## \[|\Z)"
@@ -260,7 +275,9 @@ class ChangelogManager:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Manage changelog for midil-kit")
     parser.add_argument(
-        "action", choices=["update", "preview", "release"], help="Action to perform"
+        "action",
+        choices=["update", "preview", "release", "init"],
+        help="Action to perform",
     )
     parser.add_argument("--since", help="Generate changelog since this tag/commit")
     parser.add_argument("--version", help="Version for new release")
@@ -284,6 +301,12 @@ def main() -> None:
             sys.exit(1)
         result = manager.create_release(args.version)
         print(result)
+
+    elif args.action == "init":
+        # Initialize changelog with correct initial commit date
+        initial_date = manager.get_initial_commit_date()
+        print(f"Initial commit date: {initial_date}")
+        print("Update your CHANGELOG.md to use this date for the initial release.")
 
 
 if __name__ == "__main__":
