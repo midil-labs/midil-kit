@@ -255,15 +255,7 @@ class ChangelogManager:
 
         new_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
 
-        # Add the version link at the bottom
-        if latest_tag:
-            link_line = f"\n[{version}]: https://github.com/midil/midil-kit/compare/{latest_tag}...v{version}"
-        else:
-            link_line = f"\n[{version}]: https://github.com/midil/midil-kit/releases/tag/v{version}"
-
-        # Add the link if it doesn't exist
-        if f"[{version}]:" not in new_content:
-            new_content += link_line
+        # No longer adding version links at the bottom
 
         # Write back to file
         with open(self.changelog_file, "w") as f:
