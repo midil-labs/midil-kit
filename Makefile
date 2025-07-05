@@ -116,3 +116,15 @@ release: ## Prepare a new release (bump version, update changelog)
 create-release: ## Create a new release with version
 	@read -p "Enter version (e.g., 0.2.0): " version; \
 	python scripts/changelog.py release --version $$version
+
+release-tag: ## Create a release tag and push to trigger GitHub Action
+	@read -p "Enter version (e.g., 0.2.0): " version; \
+	git tag v$$version; \
+	git push origin v$$version; \
+	echo "Tag v$$version created and pushed. GitHub Action will automatically release to PyPI."
+
+test-release: ## Create a test release tag for TestPyPI
+	@read -p "Enter version (e.g., 0.2.0-alpha.1): " version; \
+	git tag v$$version; \
+	git push origin v$$version; \
+	echo "Test tag v$$version created and pushed. GitHub Action will automatically release to TestPyPI."

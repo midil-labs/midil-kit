@@ -1,8 +1,6 @@
-# Changelog Management Guide
+# Contribution
 
-This guide explains how to use the changelog management system for the midil-kit project.
-
-## Overview
+## Changelog Management - Overview
 
 The changelog system automatically generates changelog entries from git commits that follow the [Conventional Commits](https://www.conventionalcommits.org/) specification. This ensures consistent, readable changelogs and enables automated release management.
 
@@ -172,8 +170,6 @@ The generated changelog follows the [Keep a Changelog](https://keepachangelog.co
 - Error handling utilities
 - Type-safe Pydantic models
 
-[Unreleased]: https://github.com/midil/midil-kit/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/midil/midil-kit/releases/tag/v0.1.0
 ```
 
 ## Manual Usage
