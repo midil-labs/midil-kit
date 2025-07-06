@@ -1,10 +1,8 @@
-[project]
+[tool.poetry]
 name = "midil-kit"
 version = "1.0.0-dev"
 description = "A Python SDK for working with JSON:API specifications"
-authors = [
-    {name = "Engr. Michael Kofi Armah", email = "michael.armah@midil.io"}
-]
+authors = ["Engr. Michael Kofi Armah <michael.armah@midil.io>"]
 readme = "README.md"
 keywords = ["midil", "midil-kit", "jsonapi-sdk", "jsonapi", "jsonapi-sdk"]
 classifiers = [
@@ -16,9 +14,6 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Utilities",
 ]
-requires-python = ">=3.12"
-
-[tool.poetry]
 packages = [{include = "jsonapi"}]
 
 [tool.poetry.dependencies]
