@@ -14,6 +14,7 @@ from jsonapi._mixins.validators import (
     LinkValidatorMixin,
     ResourceIdentifierValidatorMixin,
     ResourceValidatorMixin,
+    QueryParamsValidatorMixin,
 )
 
 # Type aliases
@@ -23,16 +24,11 @@ ResourceData = Union["Resource[Any]", List["Resource[Any]"], None]
 ErrorList = List["JSONAPIError"]
 LinkValue = Union[str, "LinkObject"]
 RelationshipData = Union["ResourceIdentifier", List["ResourceIdentifier"], None]
-SortField = str
-FieldsParam = Dict[str, List[str]]
-FilterParam = Dict[str, Any]
-IncludeParam = List[str]
-PageParam = Dict[str, Union[str, int]]
 
 
 # Constants
-JSONAPI_CONTENT_TYPE = "application/vnd.api+json"
-JSONAPI_ACCEPT_TYPE = "application/vnd.api+json"
+JSONAPI_CONTENT_TYPE: str = "application/vnd.api+json"
+JSONAPI_ACCEPT: str = "application/vnd.api+json"
 
 
 # Generic meta object
@@ -226,7 +222,7 @@ class JSONAPIHeader(BaseModel):
         description="The version of the JSON:API specification",
     )
     accept: str = Field(
-        default=JSONAPI_ACCEPT_TYPE,
+        default=JSONAPI_ACCEPT,
         alias="accept",
         description="The media type of the body of the resource",
     )
@@ -238,16 +234,22 @@ class JSONAPIHeader(BaseModel):
 
 
 class JSONAPIRequestBody[T: BaseModel](BaseModel):
-    data: Resource[T]
-
-
-class JSONAPIQueryParams(BaseModel):
-    include: Optional[str] = Field(
-        default=None, description="Comma-separated list of related resources to include"
-    )
-    sort: Optional[str] = Field(
+    data: Union[Resource[T], List[Resource[T]]]
+    meta: Optional[MetaObject] = Field(
         default=None,
-        description="Comma-separated list of fields to sort by. Use `-` for descending",
+        alias="meta",
+        description="Metadata about the resource that the document describes",
+    )
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+
+
+class JSONAPIQueryParams(BaseModel, QueryParamsValidatorMixin):
+    include: Optional[List[str]] = Field(
+        default=None, description="List of related resources to include"
+    )
+    sort: Optional[List[str]] = Field(
+        default=None,
+        description="List of fields to sort by. Use `-` for descending",
     )
     filter: Optional[Dict[str, str]] = Field(
         default=None, description="Filtering map in format filter[field]=value"

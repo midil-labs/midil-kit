@@ -6,14 +6,14 @@ from .document import (
     JSONAPIQueryParams,
     JSONAPIRequestBody,
     Links,
-    MetaObject,
     ResourceIdentifier,
+    Relationship,
+    JSONAPIInfo,
+    LinkObject,
+    MetaObject,
+    Resource,
 )
-from .utils import (
-    create_error_document,
-    create_resource_identifier,
-    create_success_document,
-)
+
 
 __all__ = [
     "JSONAPIHeader",
@@ -24,8 +24,9 @@ __all__ = [
     "ErrorSource",
     "MetaObject",
     "Links",
+    "Resource",
     "ResourceIdentifier",
-    "create_error_document",
-    "create_success_document",
-    "create_resource_identifier",
+    "Relationship",
+    "JSONAPIInfo",
+    "LinkObject",
 ]

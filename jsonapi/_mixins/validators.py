@@ -1,5 +1,5 @@
 import re
-from typing import Optional, Self
+from typing import Any, Dict, Optional, Self
 
 from pydantic import field_validator, model_validator
 
@@ -122,3 +122,40 @@ class LinkValidatorMixin:
         ):
             raise ValueError("Link href must be a valid URL or relative path")
         return href
+
+
+class QueryParamsValidatorMixin:
+    @model_validator(mode="before")
+    @classmethod
+    def parse_query_params(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        parsed = values.copy()
+        for key in ["include", "sort"]:
+            if key in parsed and isinstance(parsed[key], str):
+                parsed[key] = [v.strip() for v in parsed[key].split(",") if v.strip()]
+
+        if "fields" in parsed and isinstance(parsed["fields"], dict):
+            parsed["fields"] = {
+                k: [v.strip() for v in v_str.split(",")]
+                if isinstance(v_str, str)
+                else v_str
+                for k, v_str in parsed["fields"].items()
+            }
+        return parsed
+
+    @model_validator(mode="after")
+    def validate_query_structure(self) -> "Self":
+        sort = getattr(self, "sort", None)
+        fields = getattr(self, "fields", None)
+        if sort:
+            for field in sort:
+                if not field.lstrip("-").replace("_", "").isalnum():
+                    raise ValueError(f"Invalid sort field: {field}")
+
+        if fields:
+            for resource, fields_list in fields.items():
+                if not all(isinstance(f, str) and f.strip() for f in fields_list):
+                    raise ValueError(
+                        f"All field names for {resource} must be non-empty strings"
+                    )
+
+        return self
