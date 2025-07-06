@@ -1,0 +1,27 @@
+name: "Verify PR Title Convention"
+
+on:
+  pull_request:
+    types: [opened, edited]
+
+jobs:
+  check-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Check PR title convention"
+        id: title-check
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if [[ ! "$PR_TITLE" =~ ^\[(Core|Docs|CI|Infra)\](\[.*\])?\ .+ ]]; then
+            echo "PR title does not match the required convention."
+            echo "Examples of acceptable titles:"
+            echo "[Core] Add new feature for data processing"
+            echo "[Core] Fix bug in authentication module"
+            echo "[Docs] Update JSON:API SDK documentation"
+            echo "[CI] Update GitHub Actions workflow"
+            echo "[Infra] Upgrade dependencies"
+            exit 1
+          else
+            echo "PR title matches the required convention."
+          fi
