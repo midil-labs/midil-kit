@@ -13,6 +13,7 @@ jobs:
   publish_midil_kit:
     name: Publish Midil Kit
     runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref_name, 'v') && !contains(github.ref_name, '-') }}
     steps:
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
