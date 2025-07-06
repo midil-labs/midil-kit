@@ -3,39 +3,38 @@ name: Test Release to TestPyPI
 on:
   push:
     tags:
-      - v*-alpha*
-      - v*-beta*
-      - v*-rc*
-      - v*-dev*
+      - 'v*-alpha*'
+      - 'v*-beta*'
+      - 'v*-rc*'
+      - 'v*-dev*'
   workflow_dispatch:
 
-env:
-  TEST_PYPI_PASSWORD: ${{ secrets.TEST_PYPI_PASSWORD }}
-  TEST_PYPI_USERNAME: ${{ secrets.TEST_PYPI_USERNAME }}
+permissions:
+  id-token: write   # Required for Trusted Publishing
+  contents: read    # Required to access the repo
 
 jobs:
   test-publish:
     name: Test Publish to TestPyPI
     runs-on: ubuntu-latest
+    environment: test-release  # MUST match what you configured on Test PyPI
+
     steps:
-      - name: Set up Python 3.12
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Checkout Repo
-        uses: actions/checkout@v4
-      - name: Make install and build
+
+      - name: Install dependencies and build
         run: |
-            make install/ci
-            make build
-      - name: Publish package to TestPyPI
+          make install/ci
+          make build
+
+      - name: Publish to TestPyPI via Trusted Publishing
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          user: ${{ env.TEST_PYPI_USERNAME }}
-          password: ${{ env.TEST_PYPI_PASSWORD }}
-          packages-dir: ${{github.workspace}}/dist
           repository-url: https://test.pypi.org/legacy/
-
-      - name: Remove 'v' from version name
-        continue-on-error: true
-        run: echo "VERSION=$(echo ${{ github.ref_name }} | sed 's/^v//g')" >> $GITHUB_ENV
+          packages-dir: dist
