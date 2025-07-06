@@ -10,8 +10,8 @@ env:
   PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
 
 jobs:
-  publish_ocean:
-    name: Publish Ocean
+  publish_midil_kit:
+    name: Publish Midil Kit
     runs-on: ubuntu-latest
     steps:
       - name: Set up Python 3.12
