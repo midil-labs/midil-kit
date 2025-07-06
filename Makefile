@@ -60,6 +60,11 @@ install:
 	@$(ACTIVATE)
 	@$(call install_precommit)
 
+install/ci:
+	@$(call deactivate_virtualenv)
+	@$(call install_poetry)
+	@poetry install --with dev --all-extras
+
 install-dev: ## Install development dependencies
 	poetry install --with dev
 

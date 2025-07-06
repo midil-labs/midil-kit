@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Make install and build
         run: |
-            make install
+            make install/ci
             make build
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
