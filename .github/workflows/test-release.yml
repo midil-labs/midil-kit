@@ -3,10 +3,7 @@ name: Test Release to TestPyPI
 on:
   push:
     tags:
-      - 'v*.alpha*'
-      - 'v*.beta*'
-      - 'v*.rc*'
-      - 'v*.dev*'
+      - v*
   workflow_dispatch:
 
 permissions:
