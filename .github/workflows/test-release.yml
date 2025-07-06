@@ -6,15 +6,13 @@ on:
       - v*
   workflow_dispatch:
 
-permissions:
-  id-token: write   # Required for Trusted Publishing
-  contents: read    # Required to access the repo
-
 jobs:
   test-publish:
     name: Test Publish to TestPyPI
     runs-on: ubuntu-latest
     environment: "test-release"  # MUST match what you configured on Test PyPI
+    permissions:
+        id-token: write   # Required for Trusted Publishing
 
     steps:
       - name: Checkout Repo

@@ -1,37 +1,41 @@
 name: Release framework
+
 on:
   push:
     tags:
-      - v*
+      - 'v*'
   workflow_dispatch:
-
-env:
-  PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-  PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
 
 jobs:
   publish_midil_kit:
     name: Publish Midil Kit
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref_name, 'v') && !contains(github.ref_name, '-') }}
+    environment: "release"  # MUST match what you configured on Test PyPI
+    # Only run for GA releases (no dev/beta/rc tags)
+    # if: |
+    #   startsWith(github.ref, 'refs/tags/v') &&
+    #   !contains(github.ref_name, 'dev') &&
+    #   !contains(github.ref_name, 'alpha') &&
+    #   !contains(github.ref_name, 'beta') &&
+    #   !contains(github.ref_name, 'rc')
+    permissions:
+      id-token: write  # Required for Trusted Publishing
+
     steps:
-      - name: Set up Python 3.12
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Checkout Repo
-        uses: actions/checkout@v4
-      - name: Make install and build
+
+      - name: Install dependencies and build
         run: |
-            make install/ci
-            make build
-      - name: Publish package to PyPI
+          make install/ci
+          make build
+
+      - name: Publish to PyPI via Trusted Publishing
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          user: ${{ env.PYPI_USERNAME }}
-          password: ${{ env.PYPI_PASSWORD }}
-          packages-dir: ${{github.workspace}}/dist
-
-      - name: Remove 'v' from version name
-        continue-on-error: true
-        run: echo "VERSION=$(echo ${{ github.ref_name }} | sed 's/^v//g')" >> $GITHUB_ENV
+          packages-dir: ${{ github.workspace }}/dist
