@@ -17,7 +17,7 @@ classifiers = [
 packages = [{include = "jsonapi"}]
 
 [tool.poetry.dependencies]
-python = "^3.13"
+python = "^3.12"
 pydantic = "^2.0.0"
 
 [tool.poetry.group.dev.dependencies]
