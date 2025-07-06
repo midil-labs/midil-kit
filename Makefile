@@ -20,14 +20,45 @@ define run_checks
 endef
 
 
-.PHONY: help install install-dev test test-cov lint format type-check clean build publish
+define install_poetry
+	if ! command -v poetry &> /dev/null; then \
+    	pip install --upgrade pip; \
+		pip install 'poetry>=1.0.0,<2.0.0'; \
+	else \
+    	echo "Poetry is already installed."; \
+	fi
+endef
+
+
+define deactivate_virtualenv
+    if [ -n "$$VIRTUAL_ENV" ]; then \
+        unset VIRTUAL_ENV; \
+        unset PYTHONHOME; \
+        unset -f pydoc >/dev/null 2>&1; \
+        OLD_PATH="$$PATH"; \
+        PATH=$$(echo -n "$$PATH" | awk -v RS=: -v ORS=: '/\/virtualenv\/bin$$/ {next} {print}'); \
+        export PATH; \
+        hash -r; \
+        echo "Deactivated the virtual environment."; \
+    fi
+endef
+
+define install_precommit
+	command pre-commit install
+endef
+
+.PHONY: help install install-dev test test-cov lint format type-check clean build publish pre-commit-install pre-commit-run changelog changelog-preview version bump-patch bump-minor bump-major release create-release release-tag test-release
 
 help: ## Show this help message
 	@echo "Available commands:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-install: ## Install the package in development mode
-	poetry install
+install:
+	@$(call deactivate_virtualenv)
+	@$(call install_poetry)
+	@poetry install --with dev --all-extras
+	@$(ACTIVATE)
+	@$(call install_precommit)
 
 install-dev: ## Install development dependencies
 	poetry install --with dev
