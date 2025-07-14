@@ -1,5 +1,7 @@
 import re
-from typing import Any, Dict, Optional, Self
+from typing import Any, Dict, Optional, Self, List
+from enum import Enum
+from urllib.parse import urlparse
 
 from pydantic import field_validator, model_validator
 
@@ -8,6 +10,35 @@ def _validate_string(value: str, field: str, pattern: str, example: str) -> str:
     if not re.match(pattern, value):
         raise ValueError(f"{field} must match pattern: {example}")
     return value
+
+
+def _validate_url(url: str) -> str:
+    """Validate URL format more comprehensively."""
+    if not url:
+        raise ValueError("URL cannot be empty")
+
+    # Check for valid URL schemes
+    if url.startswith(("http://", "https://")):
+        try:
+            parsed = urlparse(url)
+            if not parsed.netloc:
+                raise ValueError("Invalid URL: missing hostname")
+            return url
+        except Exception:
+            raise ValueError("Invalid URL format")
+
+    # Check for relative paths
+    if url.startswith("/"):
+        # Basic validation for relative paths
+        if not re.match(r"^/[a-zA-Z0-9\-._~:/?#[\]@!$&\'()*+,;=%]*$", url):
+            raise ValueError("Invalid relative path format")
+        return url
+
+    # Allow relative URLs without leading slash
+    if re.match(r"^[a-zA-Z0-9\-._~:/?#[\]@!$&\'()*+,;=%]+$", url):
+        return url
+
+    raise ValueError("Invalid URL format")
 
 
 class ResourceIdentifierValidatorMixin:
@@ -29,11 +60,12 @@ class ResourceIdentifierValidatorMixin:
 
     @field_validator("type")
     def validate_resource_type(cls, resource_type: str) -> str:
+        """Validate resource type allowing uppercase letters for better compliance."""
         return _validate_string(
             resource_type,
             "Resource type",
-            r"^[a-z][a-z0-9_-]*$",
-            "lowercase, hyphens, underscores",
+            r"^[a-zA-Z][a-zA-Z0-9_-]*$",  # Allow uppercase letters
+            "alphanumeric, hyphens, underscores (uppercase allowed)",
         )
 
 
@@ -58,14 +90,8 @@ class ResourceValidatorMixin:
 class ErrorSourceValidatorMixin:
     @model_validator(mode="after")
     def validate_source(self) -> "Self":
-        if not (
-            getattr(self, "pointer", None)
-            or getattr(self, "parameter", None)
-            or getattr(self, "header", None)
-        ):
-            raise ValueError(
-                "At least one of 'pointer', 'parameter', or 'header' must be set"
-            )
+        # Make source validation optional as per JSON:API spec
+        # The spec allows empty source objects
         return self
 
     @field_validator("pointer")
@@ -115,47 +141,155 @@ class LinkValidatorMixin:
 
     @field_validator("href")
     def validate_link_href(cls, href: str) -> Optional[str]:
-        if not (
-            href.startswith("http://")
-            or href.startswith("https://")
-            or href.startswith("/")
-        ):
-            raise ValueError("Link href must be a valid URL or relative path")
-        return href
+        """Improved link href validation."""
+        return _validate_url(href)
+
+
+class FilterOperator(str, Enum):
+    """Enumeration for filter operators."""
+
+    EQ = "eq"  # equals
+    NE = "ne"  # not equals
+    LT = "lt"  # less than
+    LE = "le"  # less than or equal
+    GT = "gt"  # greater than
+    GE = "ge"  # greater than or equal
+    LIKE = "like"  # contains
+    IN = "in"  # in list
+    NOT_IN = "not_in"  # not in list
+
+
+def _validate_field_name(field_name: str) -> str:
+    """Validate field name format."""
+    if not re.match(
+        r"^[a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*$", field_name
+    ):
+        raise ValueError(f"Invalid field name: {field_name}")
+    return field_name
+
+
+def _validate_relationship_path(path: str) -> str:
+    """Validate relationship path format."""
+    if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*$", path):
+        raise ValueError(f"Invalid relationship path: {path}")
+    return path
+
+
+def _sanitize_query_param(value: str) -> str:
+    """Sanitize query parameter to prevent injection attacks."""
+    # Remove potentially dangerous characters
+    sanitized = re.sub(r'[<>"\']', "", value)
+    # Limit length to prevent resource exhaustion
+    if len(sanitized) > 1000:
+        raise ValueError("Query parameter too long")
+    return sanitized
 
 
 class QueryParamsValidatorMixin:
-    @model_validator(mode="before")
-    @classmethod
-    def parse_query_params(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        parsed = values.copy()
-        for key in ["include", "sort"]:
-            if key in parsed and isinstance(parsed[key], str):
-                parsed[key] = [v.strip() for v in parsed[key].split(",") if v.strip()]
+    """Mixin for validating JSON:API query parameters."""
 
-        if "fields" in parsed and isinstance(parsed["fields"], dict):
-            parsed["fields"] = {
-                k: [v.strip() for v in v_str.split(",")]
-                if isinstance(v_str, str)
-                else v_str
-                for k, v_str in parsed["fields"].items()
-            }
-        return parsed
+    @field_validator("include")
+    @classmethod
+    def validate_include(cls, include: Optional[List[str]]) -> Optional[List[str]]:
+        """Validate include relationships."""
+        if include is None:
+            return None
+
+        validated = []
+        for relationship in include:
+            validated.append(_validate_relationship_path(relationship))
+        return validated
+
+    @field_validator("sort")
+    @classmethod
+    def validate_sort(
+        cls, sort: Optional[List[Dict[str, str]]]
+    ) -> Optional[List[Dict[str, str]]]:
+        """Validate sort fields."""
+        if sort is None:
+            return None
+
+        validated = []
+        for sort_item in sort:
+            field = sort_item.get("field", "")
+            direction = sort_item.get("direction", "asc")
+
+            _validate_field_name(field)
+            if direction not in ["asc", "desc"]:
+                raise ValueError(f"Invalid sort direction: {direction}")
+
+            validated.append({"field": field, "direction": direction})
+        return validated
+
+    @field_validator("fields")
+    @classmethod
+    def validate_fields(
+        cls, fields: Optional[Dict[str, List[str]]]
+    ) -> Optional[Dict[str, List[str]]]:
+        """Validate sparse fieldsets."""
+        if fields is None:
+            return None
+
+        validated = {}
+        for resource_type, field_list in fields.items():
+            if not re.match(r"^[a-zA-Z][a-zA-Z0-9_-]*$", resource_type):
+                raise ValueError(f"Invalid resource type: {resource_type}")
+
+            validated_fields = []
+            for field in field_list:
+                validated_fields.append(_validate_field_name(field))
+            validated[resource_type] = validated_fields
+
+        return validated
+
+    @field_validator("filters")
+    @classmethod
+    def validate_filters(
+        cls, filters: Optional[List[Dict[str, Any]]]
+    ) -> Optional[List[Dict[str, Any]]]:
+        """Validate filter conditions."""
+        if filters is None:
+            return None
+
+        validated = []
+        for filter_item in filters:
+            field = filter_item.get("field", "")
+            operator = filter_item.get("operator", "eq")
+            value = filter_item.get("value")
+
+            _validate_field_name(field)
+            if operator not in [op.value for op in FilterOperator]:
+                raise ValueError(f"Invalid filter operator: {operator}")
+
+            if operator in ["in", "not_in"] and not isinstance(value, list):
+                raise ValueError(f"Filter operator {operator} requires list value")
+
+            validated.append({"field": field, "operator": operator, "value": value})
+
+        return validated
 
     @model_validator(mode="after")
-    def validate_query_structure(self) -> "Self":
-        sort = getattr(self, "sort", None)
-        fields = getattr(self, "fields", None)
-        if sort:
-            for field in sort:
-                if not field.lstrip("-").replace("_", "").isalnum():
-                    raise ValueError(f"Invalid sort field: {field}")
+    def validate_pagination_consistency(self) -> Self:
+        """Validate pagination parameter consistency."""
+        pagination = getattr(self, "pagination", None)
+        if not pagination:
+            return self
 
-        if fields:
-            for resource, fields_list in fields.items():
-                if not all(isinstance(f, str) and f.strip() for f in fields_list):
-                    raise ValueError(
-                        f"All field names for {resource} must be non-empty strings"
-                    )
+        has_page_based = "number" in pagination or "size" in pagination
+        has_offset_based = "offset" in pagination or "limit" in pagination
+        has_cursor_based = "cursor" in pagination
+
+        pagination_types = sum([has_page_based, has_offset_based, has_cursor_based])
+        if pagination_types > 1:
+            raise ValueError(
+                "Cannot mix different pagination strategies (page-based, offset-based, cursor-based)"
+            )
+
+        # Validate individual parameters
+        for param, value in pagination.items():
+            if param in ["number", "size", "limit"] and value < 1:
+                raise ValueError(f"Pagination parameter {param} must be >= 1")
+            elif param == "offset" and value < 0:
+                raise ValueError("Pagination offset must be >= 0")
 
         return self

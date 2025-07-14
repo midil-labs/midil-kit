@@ -1,5 +1,6 @@
-from typing import Any, Dict, List, Optional, TypeVar, Union
-
+from typing import Any, Dict, List, Optional, TypeVar, Union, TypeAlias, Generic
+from enum import StrEnum
+from dataclasses import dataclass
 from pydantic import BaseModel, ConfigDict, Field
 
 from jsonapi._mixins.serializers import (
@@ -14,249 +15,264 @@ from jsonapi._mixins.validators import (
     LinkValidatorMixin,
     ResourceIdentifierValidatorMixin,
     ResourceValidatorMixin,
-    QueryParamsValidatorMixin,
 )
-
-# Type aliases
-ResourceType = TypeVar("ResourceType", bound="Resource")
-RelationshipType = TypeVar("RelationshipType", bound="Relationship")
-ResourceData = Union["Resource[Any]", List["Resource[Any]"], None]
-ErrorList = List["JSONAPIError"]
-LinkValue = Union[str, "LinkObject"]
-RelationshipData = Union["ResourceIdentifier", List["ResourceIdentifier"], None]
+import re
+from pydantic import model_validator
 
 
-# Constants
-JSONAPI_CONTENT_TYPE: str = "application/vnd.api+json"
-JSONAPI_ACCEPT: str = "application/vnd.api+json"
+MetaObject: TypeAlias = Optional[Dict[str, Any]]
+LinkValue: TypeAlias = Union[str, "LinkObject"]
+RelationshipData: TypeAlias = Union[
+    "ResourceIdentifier", List["ResourceIdentifier"], None
+]
+ErrorList: TypeAlias = List["JSONAPIError"]
+
+JSONAPI_CONTENT_TYPE = "application/vnd.api+json"
+JSONAPI_ACCEPT = "application/vnd.api+json"
+JSONAPI_VERSION = "1.1"
 
 
-# Generic meta object
-MetaObject = Optional[Dict[str, Any]]
-
-
-# JSON:API Info and Error models
 class JSONAPIInfo(BaseModel):
-    version: str = Field(default="1.1", description="JSON:API specification version")
-    ext: Optional[List[str]] = Field(
-        default=None, alias="ext", description="Extension members"
-    )
-    profile: Optional[List[str]] = Field(
-        default=None, alias="profile", description="Profile members"
-    )
-    meta: MetaObject = Field(
-        default=None,
-        alias="meta",
-        description="Metadata about the JSON:API specification",
-    )
+    version: str = Field(default=JSONAPI_VERSION)
+    ext: Optional[List[str]] = None
+    profile: Optional[List[str]] = None
+    meta: MetaObject = None
 
 
 class ErrorSource(BaseModel, ErrorSourceValidatorMixin):
-    pointer: Optional[str] = Field(
-        default=None, alias="pointer", description="The pointer to the error"
-    )
-    parameter: Optional[str] = Field(
-        default=None, alias="parameter", description="The parameter of the error"
-    )
-    header: Optional[str] = Field(
-        default=None, alias="header", description="The header of the error"
-    )
+    pointer: Optional[str] = None
+    parameter: Optional[str] = None
+    header: Optional[str] = None
 
 
 class JSONAPIError(BaseModel, ErrorSerializerMixin, JSONAPIErrorValidatorMixin):
-    id: Optional[str] = Field(
-        default=None, alias="id", description="The unique identifier of the error"
-    )
-    links: Optional[Dict[str, Union[str, "LinkObject"]]] = Field(
-        default=None, alias="links", description="Links related to the error"
-    )
-    status: Optional[str] = Field(
-        default=None, alias="status", description="The HTTP status code of the error"
-    )
-    code: Optional[str] = Field(
-        default=None, alias="code", description="The error code"
-    )
-    title: Optional[str] = Field(
-        default=None, alias="title", description="The title of the error"
-    )
-    detail: Optional[str] = Field(
-        default=None, alias="detail", description="The detail of the error"
-    )
-    source: Optional[ErrorSource] = Field(
-        default=None, alias="source", description="The source of the error"
-    )
-    meta: MetaObject = Field(
-        default=None, alias="meta", description="Metadata about the error"
-    )
+    id: Optional[str] = None
+    links: Optional[Dict[str, LinkValue]] = None
+    status: Optional[str] = None
+    code: Optional[str] = None
+    title: Optional[str] = None
+    detail: Optional[str] = None
+    source: Optional[ErrorSource] = None
+    meta: MetaObject = None
 
 
-# Link models
 class LinkObject(BaseModel, LinkValidatorMixin):
     href: str
-    rel: Optional[str] = Field(
-        default=None, alias="rel", description="The relationship of the link"
-    )
-    describedby: Optional[str] = Field(
-        default=None, alias="describedby", description="The describedby of the link"
-    )
-    title: Optional[str] = Field(
-        default=None, alias="title", description="The title of the link"
-    )
-    type: Optional[str] = Field(
-        default=None, alias="type", description="The type of the link"
-    )
-    hreflang: Optional[Union[str, List[str]]] = Field(
-        default=None, alias="hreflang", description="The hreflang of the link"
-    )
-    meta: MetaObject = Field(
-        default=None, alias="meta", description="Metadata about the link"
-    )
+    rel: Optional[str] = None
+    describedby: Optional[str] = None
+    title: Optional[str] = None
+    type: Optional[str] = None
+    hreflang: Optional[Union[str, List[str]]] = None
+    meta: MetaObject = None
 
 
 class Links(BaseModel):
-    self: LinkValue = Field(..., alias="self", description="The self link")
-    related: Optional[LinkValue] = Field(
-        default=None, alias="related", description="The related link"
-    )
-    first: Optional[LinkValue] = Field(
-        default=None, alias="first", description="The first link"
-    )
-    last: Optional[LinkValue] = Field(
-        default=None, alias="last", description="The last link"
-    )
-    prev: Optional[LinkValue] = Field(
-        default=None, alias="prev", description="The previous link"
-    )
-    next: Optional[LinkValue] = Field(
-        default=None, alias="next", description="The next link"
-    )
+    self: LinkValue
+    related: Optional[LinkValue] = None
+    first: Optional[LinkValue] = None
+    last: Optional[LinkValue] = None
+    prev: Optional[LinkValue] = None
+    next: Optional[LinkValue] = None
 
-    model_config = ConfigDict(
-        extra="forbid", validate_assignment=True, use_enum_values=True
-    )
+    model_config = ConfigDict(extra="forbid")
 
 
-# Resource models
 class ResourceIdentifier(BaseModel, ResourceIdentifierValidatorMixin):
     type: str
-    id: Optional[str] = Field(
-        default=None, alias="id", description="The unique identifier of the resource"
-    )
-    lid: Optional[str] = Field(
-        default=None, alias="lid", description="The local identifier of the resource"
-    )
-    meta: Optional[MetaObject] = Field(
-        default=None, alias="meta", description="Metadata about the resource"
-    )
+    id: Optional[str] = None
+    lid: Optional[str] = None
+    meta: MetaObject = None
 
 
 class Relationship(BaseModel):
-    data: RelationshipData = Field(
-        ..., alias="data", description="The relationship data of the resource"
-    )
-    links: Optional[Links] = Field(
-        default=None, alias="links", description="Links related to the relationship"
-    )
-    meta: MetaObject = Field(
-        default=None, alias="meta", description="Metadata about the relationship"
-    )
+    data: RelationshipData
+    links: Optional[Links] = None
+    meta: MetaObject = None
 
 
-class Resource[AttributesType: BaseModel](
-    ResourceIdentifier, ResourceSerializerMixin, ResourceValidatorMixin
+AttributesT = TypeVar("AttributesT", bound=BaseModel)
+
+
+class Resource(
+    ResourceIdentifier,
+    ResourceSerializerMixin,
+    ResourceValidatorMixin,
+    Generic[AttributesT],
 ):
-    attributes: Optional[AttributesType] = Field(
-        default=None, alias="attributes", description="The attributes of the resource"
-    )
-    relationships: Optional[Dict[str, Relationship]] = Field(
-        default=None,
-        alias="relationships",
-        description="The relationships of the resource",
-    )
-    links: Optional[Links] = Field(
-        default=None, alias="links", description="Links related to the resource"
-    )
-    meta: MetaObject = Field(
-        default=None, alias="meta", description="Metadata about the resource"
-    )
+    attributes: Optional[AttributesT] = None
+    relationships: Optional[Dict[str, Relationship]] = None
+    links: Optional[Links] = None
+    meta: MetaObject = None
 
-    model_config = ConfigDict(
-        extra="forbid", validate_assignment=True, use_enum_values=True
-    )
+    model_config = ConfigDict(extra="forbid")
 
 
-# Document models
-class JSONAPIDocument[T: BaseModel](
-    BaseModel, DocumentSerializerMixin, DocumentValidatorMixin
+ResourceT: TypeAlias = Union[Resource[AttributesT], List[Resource[AttributesT]]]
+
+
+class JSONAPIDocument(
+    BaseModel,
+    DocumentSerializerMixin,
+    DocumentValidatorMixin,
+    Generic[AttributesT],
 ):
-    data: Optional[Union[Resource[T], List[Resource[T]]]] = Field(
-        default=None, alias="data", description="The primary data of the document"
-    )
-    errors: Optional[ErrorList] = Field(
-        default=None, alias="errors", description="An array of error objects"
-    )
-    meta: MetaObject = Field(
-        default=None,
-        alias="meta",
-        description="Metadata about the resource that the document describes",
-    )
-    jsonapi: Optional[JSONAPIInfo] = Field(
-        default_factory=lambda: JSONAPIInfo(),
-        alias="jsonapi",
-        description="Information about the JSON:API specification",
-    )
-    links: Optional[Links] = Field(
-        default=None, alias="links", description="Links related to the primary data"
-    )
-    included: Optional[List[Resource[BaseModel]]] = Field(
-        default=None,
-        alias="included",
-        description="An array of resource objects that are related to the primary data and/or each other",
-    )
+    data: Optional[Union[Resource[AttributesT], List[Resource[AttributesT]]]] = None
+    errors: Optional[ErrorList] = None
+    meta: MetaObject = None
+    jsonapi: Optional[JSONAPIInfo] = Field(default_factory=JSONAPIInfo)
+    links: Optional[Links] = None
+    included: Optional[List[Resource[BaseModel]]] = None
 
 
 class JSONAPIHeader(BaseModel):
-    version: str = Field(
-        default="1.1",
-        alias="jsonapi-version",
-        description="The version of the JSON:API specification",
-    )
-    accept: str = Field(
-        default=JSONAPI_ACCEPT,
-        alias="accept",
-        description="The media type of the body of the resource",
-    )
-    content_type: str = Field(
-        default=JSONAPI_CONTENT_TYPE,
-        alias="content-type",
-        description="The media type of the body of the resource",
-    )
+    version: str = Field(default=JSONAPI_VERSION, alias="jsonapi-version")
+    accept: str = Field(default=JSONAPI_ACCEPT)
+    content_type: str = Field(default=JSONAPI_CONTENT_TYPE, alias="content-type")
 
 
-class JSONAPIRequestBody[T: BaseModel](BaseModel):
-    data: Union[Resource[T], List[Resource[T]]]
-    meta: Optional[MetaObject] = Field(
-        default=None,
-        alias="meta",
-        description="Metadata about the resource that the document describes",
-    )
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+class JSONAPIRequestBody(Generic[AttributesT]):
+    data: Union[Resource[AttributesT], List[Resource[AttributesT]]]
+    meta: MetaObject = None
+
+    model_config = ConfigDict(extra="forbid")
 
 
-class JSONAPIQueryParams(BaseModel, QueryParamsValidatorMixin):
-    include: Optional[List[str]] = Field(
-        default=None, description="List of related resources to include"
-    )
-    sort: Optional[List[str]] = Field(
-        default=None,
-        description="List of fields to sort by. Use `-` for descending",
-    )
-    filter: Optional[Dict[str, str]] = Field(
-        default=None, description="Filtering map in format filter[field]=value"
-    )
-    fields: Optional[Dict[str, str]] = Field(
-        default=None, description="Sparse fieldsets: fields[type]=field1,field2"
-    )
-    page: Optional[Dict[str, int]] = Field(
-        default=None, description="Pagination parameters like page[number], page[size]"
-    )
+class FilterOperator(StrEnum):
+    EQ = "eq"
+    NE = "ne"
+    LT = "lt"
+    LE = "le"
+    GT = "gt"
+    GE = "ge"
+    IN = "in"
+    NOT_IN = "not_in"
+
+    @property
+    def symbol(self) -> Optional[str]:
+        """Returns symbolic representation of the operator (e.g., '=', '>=', 'IN')."""
+        return {
+            FilterOperator.EQ: "=",
+            FilterOperator.NE: "!=",
+            FilterOperator.LT: "<",
+            FilterOperator.LE: "<=",
+            FilterOperator.GT: ">",
+            FilterOperator.GE: ">=",
+            FilterOperator.IN: "IN",
+            FilterOperator.NOT_IN: "NOT IN",
+        }.get(self)
+
+
+@dataclass
+class FilterCondition:
+    field: str
+    operator: FilterOperator
+    value: Union[str, List[str]]
+
+    def __post_init__(self):
+        if self.operator in [
+            FilterOperator.IN,
+            FilterOperator.NOT_IN,
+        ] and not isinstance(self.value, list):
+            self.value = [self.value] if self.value else []
+
+
+_DEFAULT_PAGE_SIZE = 100
+_DEFAULT_PAGE_NUMBER = 1
+
+
+def _sanitize_query_param(value: str) -> str:
+    return re.sub(r"[^a-zA-Z0-9_\[\]\.-]", "", value.strip())
+
+
+class JSONAPIQueryParams(BaseModel):
+    include: Optional[List[str]] = None
+    sort: Optional[Dict[str, str]] = None  # field -> "asc"/"desc"
+    filters: Optional[Dict[str, Dict[str, FilterCondition]]] = None
+    fields: Optional[Dict[str, List[str]]] = None
+    pagination: Optional[Dict[str, Union[int, str]]] = None
+    extra_params: Optional[Dict[str, Union[str, int]]] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def from_dict(cls, raw: Dict[str, Any]) -> Dict[str, Any]:
+        parsed: Dict[str, Any] = {
+            "include": [],
+            "sort": {},
+            "filters": {},
+            "fields": {},
+            "pagination": {},
+            "extra_params": {},
+        }
+
+        for key, value in raw.items():
+            key = _sanitize_query_param(key)
+
+            if key == "include":
+                parsed["include"] = cls._parse_list(value)
+            elif key == "sort":
+                parsed["sort"] = cls._parse_sort(value)
+            elif key.startswith("fields["):
+                resource_type = key[7:-1]
+                parsed["fields"][resource_type] = cls._parse_list(value)
+            elif key.startswith("filter["):
+                field, operator = cls._extract_filter_parts(key)
+                operator = operator or "eq"
+                filter_obj = FilterCondition(
+                    field=field,
+                    operator=FilterOperator(operator),
+                    value=cls._parse_filter_value(operator, value),
+                )
+                parsed["filters"].setdefault(field, {})[operator] = filter_obj
+            elif key.startswith("page["):
+                param = key[5:-1]
+                parsed["pagination"][param] = cls._parse_page_param(param, value)
+            else:
+                parsed["extra_params"][key] = value
+
+        return parsed
+
+    @staticmethod
+    def _parse_list(value: Union[str, List[str]]) -> List[str]:
+        if isinstance(value, str):
+            return [v.strip() for v in value.split(",") if v.strip()]
+        return value or []
+
+    @staticmethod
+    def _parse_sort(value: Union[str, List[str]]) -> Dict[str, str]:
+        result = {}
+        if isinstance(value, str):
+            items = [v.strip() for v in value.split(",")]
+        else:
+            items = value or []
+
+        for item in items:
+            direction = "desc" if item.startswith("-") else "asc"
+            field = item[1:] if item.startswith("-") else item
+            result[field] = direction
+        return result
+
+    @staticmethod
+    def _extract_filter_parts(key: str) -> tuple[str, Optional[str]]:
+        import re
+
+        m = re.match(r"filter\[([^\]]+)\](?:\[([^\]]+)\])?", key)
+        if not m:
+            raise ValueError(f"Invalid filter key: {key}")
+        return m.group(1), m.group(2)
+
+    @staticmethod
+    def _parse_filter_value(
+        operator: str, value: Union[str, List[str]]
+    ) -> Union[str, List[str]]:
+        if operator in [FilterOperator.IN, FilterOperator.NOT_IN]:
+            return [v.strip() for v in str(value).split(",") if v.strip()]
+        return str(value).strip()
+
+    @staticmethod
+    def _parse_page_param(param: str, value: str) -> Union[int, str]:
+        if param in {"number", "size", "limit", "offset"}:
+            try:
+                return int(value)
+            except ValueError:
+                raise ValueError(f"Pagination parameter '{param}' must be an integer")
+        return str(value)
