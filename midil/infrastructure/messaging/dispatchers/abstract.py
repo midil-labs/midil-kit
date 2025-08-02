@@ -1,0 +1,45 @@
+import asyncio
+from abc import ABC, abstractmethod
+from asyncio import Queue
+from copy import deepcopy
+from loguru import logger
+from typing import Any
+
+from midil.infrastructure.messaging.context import (
+    get_current_event,
+    event_context,
+    EventContext,
+)
+
+
+class AbstractEventDispatcher(ABC):
+    def __init__(self) -> None:
+        self.event_queue: Queue[tuple[EventContext, str, dict[str, Any]]] = Queue()
+
+    async def start_event_processor(self) -> None:
+        asyncio.create_task(self._event_worker())
+
+    async def _event_worker(self) -> None:
+        logger.info(f"Started {self.__class__.__name__} event worker loop")
+        while True:
+            event_ctx, event, body = await self.event_queue.get()
+            with logger.contextualize(
+                event_id=event_ctx.id, event_type=event_ctx.event_type
+            ):
+                try:
+                    async with event_context(
+                        event_ctx.event_type, parent_override=event_ctx
+                    ) as event_ctx:
+                        await self._notify(event, body)
+                except Exception as e:
+                    logger.exception(f"Failed processing event {event}: {e}")
+                finally:
+                    self.event_queue.task_done()
+
+    async def notify(self, event: str, body: dict[str, Any]) -> None:
+        logger.debug(f"Queueing event: {event} with body: {body}")
+        await self.event_queue.put((deepcopy(get_current_event()), event, body))
+
+    @abstractmethod
+    async def _notify(self, event: str, body: dict[str, Any]) -> None:
+        ...

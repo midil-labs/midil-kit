@@ -1,0 +1,65 @@
+import aioboto3
+import json
+from typing import Any, Dict
+from loguru import logger
+from datetime import datetime
+
+
+class EventBridgeClient:
+    def __init__(self, region: str = "us-east-1"):
+        self.region = region
+
+    async def put_event(
+        self,
+        detail_type: str,
+        source: str,
+        detail: dict[str, Any],
+        event_bus_name: str = "default",
+    ) -> Dict[str, Any]:
+        try:
+            async with aioboto3.client("events", region_name=self.region) as client:
+                response: Dict[str, Any] = await client.put_events(
+                    Entries=[
+                        {
+                            "Source": source,
+                            "DetailType": detail_type,
+                            "Detail": json.dumps(detail),
+                            "EventBusName": event_bus_name,
+                        }
+                    ]
+                )
+                logger.info(f"EventBridge event emitted: {response}")
+                return response
+        except Exception as e:
+            logger.error(f"Failed to put EventBridge event: {e}")
+            raise
+
+    async def schedule_event(
+        self,
+        schedule_name: str,
+        endpoint: str,
+        execution_time: datetime,
+        session_id: str,
+        checkin_code: str,
+        role_arn: str,
+    ) -> None:
+        try:
+            async with aioboto3.client("scheduler", region_name=self.region) as client:
+                await client.create_schedule(
+                    Name=schedule_name,
+                    ScheduleExpression=f"at({execution_time.isoformat()})",
+                    FlexibleTimeWindow={"Mode": "OFF"},
+                    Target={
+                        "Arn": endpoint,
+                        "RoleArn": role_arn,
+                        "Input": json.dumps(
+                            {"session_id": session_id, "checkin_code": checkin_code}
+                        ),
+                    },
+                )
+                logger.info(
+                    f"Scheduled event '{schedule_name}' at {execution_time.isoformat()}"
+                )
+        except Exception as e:
+            logger.error(f"Failed to schedule event '{schedule_name}': {e}")
+            raise
