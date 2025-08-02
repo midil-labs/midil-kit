@@ -17,7 +17,7 @@ class EventBridgeClient:
         event_bus_name: str = "default",
     ) -> Dict[str, Any]:
         try:
-            async with aioboto3.client("events", region_name=self.region) as client:
+            async with aioboto3.client("events", region_name=self.region) as client:  # type: ignore[attr-defined]
                 response: Dict[str, Any] = await client.put_events(
                     Entries=[
                         {
@@ -44,7 +44,7 @@ class EventBridgeClient:
         role_arn: str,
     ) -> None:
         try:
-            async with aioboto3.client("scheduler", region_name=self.region) as client:
+            async with aioboto3.client("scheduler", region_name=self.region) as client:  # type: ignore[attr-defined]
                 await client.create_schedule(
                     Name=schedule_name,
                     ScheduleExpression=f"at({execution_time.isoformat()})",
