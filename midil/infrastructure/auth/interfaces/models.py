@@ -7,6 +7,7 @@ from dateutil import parser
 class ExpirableTokenMixin(BaseModel):
     _time_buffer: timedelta = PrivateAttr(default_factory=lambda: timedelta(minutes=5))
     token: str
+    refresh_token: Optional[str] = None
 
     def expires_at(self) -> Optional[datetime]:
         raise NotImplementedError("Subclasses must implement expires_at()")
