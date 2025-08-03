@@ -3,6 +3,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from midil.infrastructure.auth.interfaces.authorizer import (
     AuthZTokenClaims,
+    AuthZProvider,
 )
 from midil.infrastructure.auth.cognito.jwt_authorizer import CognitoJWTAuthorizer
 import os
@@ -24,7 +25,51 @@ class AuthContext:
         }
 
 
-class AuthMiddleware(BaseHTTPMiddleware):
+class BaseAuthMiddleware(BaseHTTPMiddleware):
+    """
+    Base middleware for extracting authentication headers from the request and storing
+    authentication context in the request state.
+
+    Subclass this middleware and implement the `authorizer` method to provide a concrete
+    AuthZProvider (e.g., CognitoJWTAuthorizer).
+
+    Usage Example:
+
+        def get_auth(request: Request) -> AuthContext:
+            return request.state.auth
+
+        @app.get("/me")
+        def me(auth: AuthContext = Depends(get_auth)):
+            return auth.to_dict()
+
+        # Add as middleware
+        app.add_middleware(CognitoAuthMiddleware)
+
+    After authentication, the request's state will have an `auth` attribute containing
+    an AuthContext instance with the decoded claims and raw headers.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        token = request.headers["authorization"]
+
+        authorizer = await self.authorizer(request)
+        claims = await authorizer.verify(token)
+
+        request.state.auth = AuthContext(
+            claims=claims,
+            _raw_headers=dict(request.headers),
+        )
+        response = await call_next(request)
+        return response
+
+    async def authorizer(self, request: Request) -> AuthZProvider:
+        """
+        Authorizer is a class that verifies and decodes a JWT token.
+        """
+        raise NotImplementedError("Authorizer not implemented")
+
+
+class CognitoAuthMiddleware(BaseAuthMiddleware):
     """
     Middleware to extract auth headers from request and store them in the request state.
 
@@ -38,26 +83,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return auth.to_dict()
 
         # as middleware
-        app.add_middleware(AuthMiddleware)
-
-    Example:
-
-        curl -H "x-user-sub: 123" -H "x-user-email: test@test.com" -H "x-user-name: John Doe" http://localhost:8000/me
+        app.add_middleware(CognitoAuthMiddleware)
 
     """
 
-    async def dispatch(self, request: Request, call_next):
-        token = request.headers["authorization"]
-
-        authorizer = CognitoJWTAuthorizer(
+    async def authorizer(self, request: Request) -> AuthZProvider:
+        return CognitoJWTAuthorizer(
             user_pool_id=os.getenv("COGNITO_USER_POOL_ID", ""),
             region=os.getenv("AWS_REGION", ""),
         )
-        claims = await authorizer.verify(token)
-
-        request.state.auth = AuthContext(
-            claims=claims,
-            _raw_headers=dict(request.headers),
-        )
-        response = await call_next(request)
-        return response

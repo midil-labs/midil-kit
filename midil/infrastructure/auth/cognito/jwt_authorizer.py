@@ -11,13 +11,15 @@ from midil.infrastructure.auth.interfaces.authorizer import (
     AuthZProvider,
     AuthZTokenClaims,
 )
-from pydantic import Field, field_validator
-import re
+from pydantic import Field
 
 
 class CognitoTokenClaims(AuthZTokenClaims):
     email: Optional[str] = Field(
-        default=None, alias="email", description="The email address of the user"
+        default=None,
+        alias="email",
+        description="The email address of the user",
+        pattern=r"^[^@]+@[^@]+\.[^@]+$",
     )
     name: Optional[str] = Field(
         default=None, alias="name", description="The name of the user"
@@ -32,12 +34,8 @@ class CognitoTokenClaims(AuthZTokenClaims):
         default=None, alias="iat", description="The issued at time of the token"
     )
 
-    @field_validator("email")
-    @classmethod
-    def validate_email(cls, v):
-        if v is not None and not re.match(r"^[^@]+@[^@]+\.[^@]+$", v):
-            raise ValueError("Invalid email format")
-        return v
+    class Config:
+        extra = "allow"
 
 
 class CognitoJWTAuthorizer(AuthZProvider):

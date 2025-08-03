@@ -10,7 +10,7 @@ from starlette.applications import Starlette
 
 from midil.extensions.fastapi.middleware.auth_middleware import (
     AuthContext,
-    AuthMiddleware,
+    CognitoAuthMiddleware,
 )
 from midil.infrastructure.auth.interfaces.models import AuthZTokenClaims
 
@@ -45,8 +45,8 @@ class TestAuthContext:
         assert isinstance(result["claims"], dict)
 
 
-class TestAuthMiddleware:
-    """Tests for AuthMiddleware class."""
+class TestCognitoAuthMiddleware:
+    """Tests for CognitoAuthMiddleware class."""
 
     @pytest.fixture
     def mock_request(self):
@@ -67,9 +67,9 @@ class TestAuthMiddleware:
 
     @pytest.fixture
     def auth_middleware(self):
-        """Create AuthMiddleware instance."""
+        """Create CognitoAuthMiddleware instance."""
         app = Starlette()
-        return AuthMiddleware(app)
+        return CognitoAuthMiddleware(app)
 
     @pytest.fixture
     def mock_authorizer(self, mock_cognito_claims):
