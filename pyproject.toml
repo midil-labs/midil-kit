@@ -128,13 +128,14 @@ markers = [
     "asyncio: mark test as async",
 ]
 
+
 [tool.towncrier]
-directory = "changelog"
-filename = "CHANGELOG.md"
-title_format = "## {version} ({project_date})"
-package_dir = "."
 package = "midil"
-underlines = [""]
+filename = "CHANGELOG.md"
+directory = "changelog"
+title_format = "## v{version} ({date})"
+underlines = ["", "", ""]
+issue_format = "[#{issue}]"
 template = "changelog/.template"
 
 [[tool.towncrier.type]]
