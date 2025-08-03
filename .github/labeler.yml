@@ -1,0 +1,8 @@
+framework:
+  - any: ['midil/**']
+
+tests:
+  - any: ['**/tests/**']
+
+infra:
+  - any: ['.github/**']
