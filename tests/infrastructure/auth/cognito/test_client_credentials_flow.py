@@ -170,13 +170,8 @@ class TestCognitoClientCredentialsAuthClient:
             assert headers.authorization == "Bearer cached-header-token"
             mock_fetch.assert_not_called()
 
-    @patch(
-        "midil.infrastructure.auth.cognito.client_credentials_flow.httpx.AsyncClient"
-    )
     @pytest.mark.asyncio
-    async def test_fetch_token_success(
-        self, mock_client_class, auth_client, mock_token_response
-    ):
+    async def test_fetch_token_success(self, auth_client, mock_token_response):
         """Test successful token fetching."""
         # Setup mock response
         mock_response = Mock()
@@ -185,7 +180,7 @@ class TestCognitoClientCredentialsAuthClient:
 
         mock_client = AsyncMock()
         mock_client.post.return_value = mock_response
-        mock_client_class.return_value.__aenter__.return_value = mock_client
+        auth_client.client = mock_client
 
         result = await auth_client._fetch_token()
 
@@ -204,12 +199,9 @@ class TestCognitoClientCredentialsAuthClient:
             },
         )
 
-    @patch(
-        "midil.infrastructure.auth.cognito.client_credentials_flow.httpx.AsyncClient"
-    )
     @pytest.mark.asyncio
     async def test_fetch_token_without_scope(
-        self, mock_client_class, auth_client_no_scope, mock_token_response
+        self, auth_client_no_scope, mock_token_response
     ):
         """Test token fetching without scope."""
         # Setup mock response
@@ -219,7 +211,7 @@ class TestCognitoClientCredentialsAuthClient:
 
         mock_client = AsyncMock()
         mock_client.post.return_value = mock_response
-        mock_client_class.return_value.__aenter__.return_value = mock_client
+        auth_client_no_scope.client = mock_client
 
         result = await auth_client_no_scope._fetch_token()
 
@@ -229,11 +221,8 @@ class TestCognitoClientCredentialsAuthClient:
         call_args = mock_client.post.call_args
         assert call_args[1]["data"] == {"grant_type": "client_credentials"}
 
-    @patch(
-        "midil.infrastructure.auth.cognito.client_credentials_flow.httpx.AsyncClient"
-    )
     @pytest.mark.asyncio
-    async def test_fetch_token_http_error(self, mock_client_class, auth_client):
+    async def test_fetch_token_http_error(self, auth_client):
         """Test token fetching with HTTP error."""
         # Setup mock error response
         error_response = {
@@ -246,20 +235,15 @@ class TestCognitoClientCredentialsAuthClient:
 
         mock_client = AsyncMock()
         mock_client.post.return_value = mock_response
-        mock_client_class.return_value.__aenter__.return_value = mock_client
+        auth_client.client = mock_client
 
         with pytest.raises(
             CognitoAuthenticationError, match="Cognito token fetch failed"
         ):
             await auth_client._fetch_token()
 
-    @patch(
-        "midil.infrastructure.auth.cognito.client_credentials_flow.httpx.AsyncClient"
-    )
     @pytest.mark.asyncio
-    async def test_fetch_token_different_error_codes(
-        self, mock_client_class, auth_client
-    ):
+    async def test_fetch_token_different_error_codes(self, auth_client):
         """Test token fetching with different HTTP error codes."""
         error_codes = [400, 401, 403, 500, 502]
 
@@ -270,20 +254,17 @@ class TestCognitoClientCredentialsAuthClient:
 
             mock_client = AsyncMock()
             mock_client.post.return_value = mock_response
-            mock_client_class.return_value.__aenter__.return_value = mock_client
+            auth_client.client = mock_client
 
             with pytest.raises(CognitoAuthenticationError):
                 await auth_client._fetch_token()
 
-    @patch(
-        "midil.infrastructure.auth.cognito.client_credentials_flow.httpx.AsyncClient"
-    )
     @pytest.mark.asyncio
-    async def test_fetch_token_network_error(self, mock_client_class, auth_client):
+    async def test_fetch_token_network_error(self, auth_client):
         """Test token fetching with network error."""
         mock_client = AsyncMock()
         mock_client.post.side_effect = httpx.ConnectError("Connection failed")
-        mock_client_class.return_value.__aenter__.return_value = mock_client
+        auth_client.client = mock_client
 
         with pytest.raises(httpx.ConnectError):
             await auth_client._fetch_token()
@@ -367,11 +348,8 @@ class TestCognitoClientCredentialsAuthClient:
 
         assert isinstance(auth_client._lock, asyncio.Lock)
 
-    @patch(
-        "midil.infrastructure.auth.cognito.client_credentials_flow.httpx.AsyncClient"
-    )
     @pytest.mark.asyncio
-    async def test_fetch_token_request_structure(self, mock_client_class, auth_client):
+    async def test_fetch_token_request_structure(self, auth_client):
         """Test the exact structure of the token request."""
         mock_response = Mock()
         mock_response.status_code = 200
@@ -379,7 +357,7 @@ class TestCognitoClientCredentialsAuthClient:
 
         mock_client = AsyncMock()
         mock_client.post.return_value = mock_response
-        mock_client_class.return_value.__aenter__.return_value = mock_client
+        auth_client.client = mock_client
 
         await auth_client._fetch_token()
 

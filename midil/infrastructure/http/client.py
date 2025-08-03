@@ -5,6 +5,7 @@ from midil.infrastructure.http.overrides.async_http import (
     get_http_async_client,
     _http_client_var,
 )
+from midil.infrastructure.auth.interfaces.models import AuthNHeaders
 
 if TYPE_CHECKING:
     from httpx import URL
@@ -31,6 +32,13 @@ class HttpClient:
     async def headers(self) -> Dict[str, Any]:
         auth_headers = await self._auth_client.get_headers()
         return auth_headers.model_dump(by_alias=True)
+
+    @headers.setter
+    async def headers(self, value: AuthNHeaders | Dict[str, Any]) -> None:
+        if isinstance(value, AuthNHeaders):
+            self.client.headers.update(value.model_dump(by_alias=True))
+        else:
+            self.client.headers.update(value)
 
     async def send_request(self, method: str, url: str, data: Dict[str, Any]) -> Any:
         headers = await self.headers

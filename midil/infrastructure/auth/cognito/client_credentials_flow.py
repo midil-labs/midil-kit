@@ -1,4 +1,3 @@
-import httpx
 import base64
 from typing import Optional, Any
 from datetime import datetime, timezone, timedelta
@@ -7,6 +6,7 @@ from midil.infrastructure.auth.interfaces.authenticator import AuthNProvider
 from midil.infrastructure.auth.interfaces.models import AuthNToken, AuthNHeaders
 import asyncio
 from midil.infrastructure.auth.cognito._exceptions import CognitoAuthenticationError
+from midil.infrastructure.http.overrides.async_http import get_http_async_client
 
 
 class CognitoClientCredentialsAuthClient(AuthNProvider):
@@ -25,6 +25,7 @@ class CognitoClientCredentialsAuthClient(AuthNProvider):
         self.token_url = token_url
         self._cached_token: Optional[AuthNToken] = None
         self._lock = asyncio.Lock()
+        self.client = get_http_async_client()
 
     async def get_token(self) -> AuthNToken:
         async with self._lock:
@@ -70,11 +71,7 @@ class CognitoClientCredentialsAuthClient(AuthNProvider):
         if self.scope:
             data["scope"] = self.scope
 
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(self.token_url, data=data, headers=headers)
-            response = resp.json()
-            if resp.status_code != 200:
-                raise CognitoAuthenticationError(
-                    f"Cognito token fetch failed: {response}"
-                )
-            return response
+        response = await self.client.post(self.token_url, data=data, headers=headers)
+        if response.status_code != 200:
+            raise CognitoAuthenticationError(f"Cognito token fetch failed: {response}")
+        return response.json()
