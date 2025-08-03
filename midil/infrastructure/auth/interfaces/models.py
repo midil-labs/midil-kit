@@ -29,7 +29,7 @@ class AuthNHeaders(BaseModel):
     accept: str = Field(alias="Accept", default="application/json")
     content_type: str = Field(alias="Content-Type", default="application/json")
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
 
 
 class AuthZTokenClaims(ExpirableTokenMixin):

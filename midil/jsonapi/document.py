@@ -80,7 +80,7 @@ class BaseResourceIdentifier(BaseModel):
 
 
 class ExistingResourceIdentifier(BaseResourceIdentifier):
-    id: str = Field(pattern=r"^[a-zA-Z0-9_-]+$")
+    id: Optional[str] = Field(default=None, pattern=r"^[a-zA-Z0-9_-]+$")
     lid: Optional[str] = Field(default=None, pattern=r"^[a-zA-Z0-9_-]+$")
 
 
@@ -111,7 +111,9 @@ class Resource(
     model_config = ConfigDict(extra="forbid")
 
 
-ResourceT: TypeAlias = Union[Resource[AttributesT], List[Resource[AttributesT]]]
+ResourceT = TypeVar(
+    "ResourceT", bound=Union[Resource[BaseModel], List[Resource[BaseModel]]]
+)
 
 
 class JSONAPIDocument(
@@ -120,7 +122,7 @@ class JSONAPIDocument(
     DocumentValidatorMixin,
     Generic[AttributesT],
 ):
-    data: Optional[ResourceT[AttributesT]] = None
+    data: Optional[Union[Resource[AttributesT], List[Resource[AttributesT]]]] = None
     errors: Optional[ErrorList] = None
     meta: MetaObject = None
     jsonapi: Optional[JSONAPIInfo] = Field(default_factory=JSONAPIInfo)
@@ -134,8 +136,8 @@ class JSONAPIHeader(BaseModel):
     content_type: str = Field(default=JSONAPI_CONTENT_TYPE, alias="content-type")
 
 
-class JSONAPIRequestBody(Generic[AttributesT], BaseModel):
-    data: ResourceT[AttributesT]
+class JSONAPIRequestBody(BaseModel, Generic[AttributesT]):
+    data: Union[Resource[AttributesT], List[Resource[AttributesT]]]
     meta: MetaObject = None
 
     model_config = ConfigDict(extra="forbid")

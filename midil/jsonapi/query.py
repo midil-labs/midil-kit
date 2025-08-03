@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, field_validator, RootModel
 from enum import StrEnum
-from typing import List, Dict, Optional, Annotated
+from typing import List, Optional, Annotated
 
 
 _DEFAULT_PAGE_SIZE = 10
@@ -18,30 +18,27 @@ class SortDirection(StrEnum):
 
 
 class SortField(RootModel[str]):
-    __root__: str
+    root: str
 
     @property
     def value(self) -> str:
-        return self.__root__.lstrip("-")
+        return self.root.lstrip("-")
 
     @property
     def direction(self) -> SortDirection:
-        return (
-            SortDirection.DESC if self.__root__.startswith("-") else SortDirection.ASC
-        )
+        return SortDirection.DESC if self.root.startswith("-") else SortDirection.ASC
 
 
 class IncludeField(RootModel[List[str]]):
-    __root__: List[str]
+    root: List[str]
 
     @property
     def values(self) -> List[str]:
-        return self.__root__
+        return self.root
 
 
 class SortQueryParams(BaseModel):  ## fastapi compatible
     sort: List[SortField]
-    _sort_map: Dict[str, SortField] = {}
 
     @field_validator("sort", mode="before")
     @classmethod
@@ -55,4 +52,10 @@ class SortQueryParams(BaseModel):  ## fastapi compatible
         self._sort_map = {sf.value: sf for sf in self.sort}
 
     def __getattr__(self, item: str) -> Optional[SortField]:
-        return self._sort_map.get(item)
+        # Use getattr with default to avoid recursion
+        sort_map = (
+            object.__getattribute__(self, "_sort_map")
+            if hasattr(self, "_sort_map")
+            else {}
+        )
+        return sort_map.get(item)

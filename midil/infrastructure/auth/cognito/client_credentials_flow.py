@@ -1,6 +1,7 @@
 import httpx
 import base64
 from typing import Optional, Any
+from datetime import datetime, timezone, timedelta
 from midil.infrastructure.auth.interfaces.authenticator import AuthNProvider
 
 from midil.infrastructure.auth.interfaces.models import AuthNToken, AuthNHeaders
@@ -31,8 +32,18 @@ class CognitoClientCredentialsAuthClient(AuthNProvider):
                 return self._cached_token
 
             token = await self._fetch_token()
+
+            # Calculate expiration time from expires_in seconds
+            expires_in_seconds = token.get("expires_in")
+            expires_at_iso = None
+            if expires_in_seconds:
+                expires_at = datetime.now(timezone.utc) + timedelta(
+                    seconds=expires_in_seconds
+                )
+                expires_at_iso = expires_at.isoformat()
+
             self._cached_token = AuthNToken(
-                token=token["access_token"], expires_at_iso=token.get("expires_in")
+                token=token["access_token"], expires_at_iso=expires_at_iso
             )
             return self._cached_token
 

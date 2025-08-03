@@ -22,12 +22,6 @@ class ResourceValidatorMixin:
             raise ValueError(
                 "At least one of 'id' or 'lid' must be present in a resource"
             )
-        if not getattr(self, "attributes", None) and not getattr(
-            self, "relationships", None
-        ):
-            raise ValueError(
-                "At least one of 'attributes' or 'relationships' must be present"
-            )
         return self
 
 

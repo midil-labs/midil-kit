@@ -11,19 +11,33 @@ from midil.infrastructure.auth.interfaces.authorizer import (
     AuthZProvider,
     AuthZTokenClaims,
 )
-from pydantic import EmailStr, Field
+from pydantic import Field, field_validator
+import re
 
 
 class CognitoTokenClaims(AuthZTokenClaims):
-    email: Optional[EmailStr] = Field(
-        alias="email", description="The email address of the user"
+    email: Optional[str] = Field(
+        default=None, alias="email", description="The email address of the user"
     )
-    name: Optional[str] = Field(alias="name", description="The name of the user")
-    iss: Optional[str] = Field(alias="iss", description="The issuer of the token")
-    aud: Optional[str] = Field(alias="aud", description="The audience of the token")
+    name: Optional[str] = Field(
+        default=None, alias="name", description="The name of the user"
+    )
+    iss: Optional[str] = Field(
+        default=None, alias="iss", description="The issuer of the token"
+    )
+    aud: Optional[str] = Field(
+        default=None, alias="aud", description="The audience of the token"
+    )
     iat: Optional[int] = Field(
-        alias="iat", description="The issued at time of the token"
+        default=None, alias="iat", description="The issued at time of the token"
     )
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v):
+        if v is not None and not re.match(r"^[^@]+@[^@]+\.[^@]+$", v):
+            raise ValueError("Invalid email format")
+        return v
 
 
 class CognitoJWTAuthorizer(AuthZProvider):
@@ -101,7 +115,7 @@ class CognitoJWTAuthorizer(AuthZProvider):
                 },
             )
             logger.debug(f"Successfully verified JWT token: {decoded}")
-            claims = CognitoTokenClaims(**decoded)
+            claims = CognitoTokenClaims(token=token, **decoded)
             return claims
 
         except (InvalidTokenError, DecodeError) as e:

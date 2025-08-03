@@ -35,3 +35,8 @@ class HttpClient:
         )
         response.raise_for_status()
         return response.json()
+
+    async def send_paginated_request(
+        self, method: str, url: str, data: Dict[str, Any]
+    ) -> Any:
+        raise NotImplementedError("Paginated requests are not implemented")

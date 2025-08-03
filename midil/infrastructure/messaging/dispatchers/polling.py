@@ -1,6 +1,6 @@
 from collections import defaultdict
 from typing import Callable, Awaitable, Any, Dict, List, Union
-import asyncio
+import anyio
 import inspect
 from loguru import logger
 from midil.infrastructure.messaging.dispatchers.abstract import AbstractEventDispatcher
@@ -48,13 +48,15 @@ class PollingEventDispatcher(AbstractEventDispatcher):
             return
 
         for observer in observers:
-            if asyncio.iscoroutinefunction(observer):
+            if inspect.iscoroutinefunction(observer):
                 if inspect.ismethod(observer):
                     handler = observer.__self__.__class__.__name__
                     logger.debug(f"Notifying {handler} for event: {event}")
                 else:
                     logger.debug(f"Notifying {observer.__name__} for event: {event}")
-                asyncio.create_task(observer(event, body))
+                # Use anyio's compatibility layer for task creation
+                async with anyio.create_task_group() as tg:
+                    tg.start_soon(observer, event, body)
 
 
 dispatcher = PollingEventDispatcher()

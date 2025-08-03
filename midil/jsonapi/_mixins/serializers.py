@@ -42,7 +42,7 @@ class ResourceSerializerMixin:
             elif hasattr(attributes, "model_dump"):
                 result["attributes"] = attributes.model_dump(exclude_none=True)
             else:
-                result["attributes"] = dict(attributes)
+                raise ValueError("Attributes is not a BaseModel")
 
     def _add_relationships(
         self, result: Dict[str, Any], fields: Optional[List[str]]
