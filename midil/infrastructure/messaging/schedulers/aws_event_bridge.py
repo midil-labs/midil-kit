@@ -5,7 +5,7 @@ from loguru import logger
 from datetime import datetime
 
 
-class EventBridgeClient:
+class AWSEventBridgeClient:
     def __init__(self, region: str = "us-east-1"):
         self.region = region
 

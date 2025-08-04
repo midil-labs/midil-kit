@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Dict, Any
+from typing import Dict, Any, Callable, Awaitable
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from midil.infrastructure.auth.interfaces.authorizer import AuthZProvider
@@ -6,8 +6,7 @@ from midil.infrastructure.auth.interfaces.models import AuthZTokenClaims
 from midil.infrastructure.auth.cognito.jwt_authorizer import CognitoJWTAuthorizer
 import os
 
-if TYPE_CHECKING:
-    from starlette.responses import Response
+from starlette.responses import Response
 
 
 class AuthContext:
@@ -50,7 +49,11 @@ class BaseAuthMiddleware(BaseHTTPMiddleware):
     an AuthContext instance with the decoded claims and raw headers.
     """
 
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
         token = request.headers["authorization"]
 
         authorizer = await self.authorizer(request)
@@ -72,7 +75,7 @@ class BaseAuthMiddleware(BaseHTTPMiddleware):
 
 class CognitoAuthMiddleware(BaseAuthMiddleware):
     """
-    Middleware to extract auth headers from request and store them in the request state.
+    Middleware to extract cognitoauth headers from request and store them in the request state.
 
     Usage:
 
@@ -93,12 +96,3 @@ class CognitoAuthMiddleware(BaseAuthMiddleware):
             user_pool_id=os.getenv("COGNITO_USER_POOL_ID", ""),
             region=os.getenv("AWS_REGION", ""),
         )
-
-
-# def cognito_auth_middleware(
-#     call_next: Callable[[Request], Awaitable[Response]],
-# ) -> Callable[[Request], Awaitable[Response]]:
-#     return CognitoAuthMiddleware(call_next).dispatch(
-#         request=Request(scope={"type": "http"}),
-#         call_next=call_next,
-#     )
