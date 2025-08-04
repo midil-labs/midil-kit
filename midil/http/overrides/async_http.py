@@ -2,7 +2,7 @@ import httpx
 import contextvars
 
 from midil.http.overrides.async_client import MidilAsyncClient
-from midil.http.overrides.retry import RetryTransport
+from midil.http.overrides.retry.transport import RetryTransport
 
 _http_client_var: contextvars.ContextVar[
     httpx.AsyncClient | None

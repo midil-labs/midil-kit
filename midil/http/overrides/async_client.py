@@ -3,7 +3,7 @@ from typing import Any, Type, override
 import httpx
 from loguru import logger
 
-from midil.http.overrides.retry import RetryTransport
+from midil.http.overrides.retry.transport import RetryTransport
 
 
 class MidilAsyncClient(httpx.AsyncClient):
@@ -33,7 +33,7 @@ class MidilAsyncClient(httpx.AsyncClient):
             return super()._init_transport(transport=transport, **kwargs)
 
         return self._transport_class(
-            wrapped_transport=httpx.AsyncHTTPTransport(
+            wrapped_transport=httpx.AsyncHTTPTransport(  # type: ignore
                 **kwargs,
             ),
             logger=logger,
@@ -44,7 +44,7 @@ class MidilAsyncClient(httpx.AsyncClient):
         self, proxy: httpx.Proxy, **kwargs: Any
     ) -> httpx.AsyncBaseTransport:
         return self._transport_class(
-            wrapped_transport=httpx.AsyncHTTPTransport(
+            wrapped_transport=httpx.AsyncHTTPTransport(  # type: ignore
                 proxy=proxy,
                 **kwargs,
             ),

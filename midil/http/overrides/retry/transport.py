@@ -1,0 +1,128 @@
+import asyncio
+import time
+from typing import Any, Callable, Coroutine, Optional, Union
+
+import httpx
+
+from midil.http.overrides.retry.protocols import (
+    RetryObserver,
+    RetryStrategy,
+    BackoffStrategy,
+)
+from midil.http.overrides.retry.strategies import DefaultRetryStrategy
+from midil.http.overrides.retry.backoffs import ExponentialBackoffWithJitter
+
+
+class RetryTransport(httpx.AsyncBaseTransport, httpx.BaseTransport):
+    def __init__(
+        self,
+        wrapped: Union[httpx.BaseTransport, httpx.AsyncBaseTransport],
+        max_attempts: int = 5,
+        retry_strategy: RetryStrategy = DefaultRetryStrategy(),
+        backoff_strategy: BackoffStrategy = ExponentialBackoffWithJitter(),
+        observer: Optional[RetryObserver] = None,
+        logger: Optional[Any] = None,
+    ) -> None:
+        """
+        A custom HTTP transport for httpx that automatically retries requests using a configurable
+        retry and backoff strategy.
+
+        Args:
+            wrapped (Union[httpx.BaseTransport, httpx.AsyncBaseTransport]):
+                The underlying transport to wrap and delegate requests to.
+            max_attempts (int, optional):
+                The maximum number of attempts for a request (including the initial attempt).
+                Defaults to 5.
+            retry_strategy (RetryStrategy, optional):
+                The strategy to determine whether a request should be retried based on the request,
+                response, and error. Defaults to DefaultRetryStrategy().
+            backoff_strategy (BackoffStrategy, optional):
+                The strategy to determine how long to wait between retries. Defaults to ExponentialBackoffWithJitter().
+            observer (Optional[RetryObserver], optional):
+                An optional observer that can mutate the request before each retry (e.g., to refresh auth).
+            logger (Optional[Any], optional):
+                An optional logger for logging retry attempts and errors.
+        """
+        self._wrapped = wrapped
+        self._max_attempts = max_attempts
+        self._retry_strategy = retry_strategy
+        self._backoff_strategy = backoff_strategy
+        self._observer = observer
+        self._logger = logger
+
+    def handle_request(self, request: httpx.Request) -> httpx.Response:
+        return self._sync_retry_loop(request, self._wrapped.handle_request)  # type: ignore
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        return await self._async_retry_loop(request, self._wrapped.handle_async_request)  # type: ignore
+
+    def _sync_retry_loop(
+        self, request: httpx.Request, send: Callable[..., httpx.Response]
+    ) -> httpx.Response:
+        response = None
+        for attempt in range(1, self._max_attempts + 1):
+            error = None
+            try:
+                response = send(request)
+                if not self._retry_strategy.should_retry(request, response, None):
+                    return response
+                response.close()
+            except Exception as exc:
+                error = exc
+                if not self._retry_strategy.should_retry(request, None, exc):
+                    raise
+            self._log_retry(request, response, error, attempt)
+            time.sleep(
+                self._backoff_strategy.calculate_sleep(
+                    attempt, response.headers if response else {}
+                )
+            )
+            request = self._observer.on_retry(request) if self._observer else request
+        return response  # type: ignore # May be failed last attempt
+
+    async def _async_retry_loop(
+        self,
+        request: httpx.Request,
+        send: Callable[..., Coroutine[Any, Any, httpx.Response]],
+    ) -> httpx.Response:
+        response = None
+        for attempt in range(1, self._max_attempts + 1):
+            error = None
+            try:
+                response = await send(request)
+                if not self._retry_strategy.should_retry(request, response, None):
+                    return response
+                await response.aclose()
+            except Exception as exc:
+                error = exc
+                if not self._retry_strategy.should_retry(request, None, exc):
+                    raise
+            self._log_retry(request, response, error, attempt)
+            await asyncio.sleep(
+                self._backoff_strategy.calculate_sleep(
+                    attempt, response.headers if response else {}
+                )
+            )
+            request = self._observer.on_retry(request) if self._observer else request
+        return response  # type: ignore # Final failed attempt
+
+    def _log_retry(
+        self,
+        request: httpx.Request,
+        response: Optional[httpx.Response],
+        error: Optional[Exception],
+        attempt: int,
+    ):
+        if not self._logger:
+            return
+        msg = f"Retry {attempt} for {request.method} {request.url}"
+        if error:
+            self._logger.warning(f"{msg} due to error: {error}")
+        elif response:
+            self._logger.warning(f"{msg} with status: {response.status_code}")
+
+    async def aclose(self) -> None:
+        await self._wrapped.aclose()  # type: ignore
+
+    def close(self) -> None:
+        self._wrapped.close()  # type: ignore
