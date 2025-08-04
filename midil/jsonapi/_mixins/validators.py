@@ -43,22 +43,3 @@ class JSONAPIErrorValidatorMixin:
                 "At least one of 'title' or 'detail' must be set in an error object"
             )
         return self
-
-
-class DocumentValidatorMixin:
-    @model_validator(mode="after")
-    def validate_document(self) -> "Self":
-        if (
-            getattr(self, "data", None) is not None
-            and getattr(self, "errors", None) is not None
-        ):
-            raise ValueError("A document MUST NOT contain both 'data' and 'errors'")
-        if (
-            getattr(self, "data", None) is None
-            and getattr(self, "errors", None) is None
-            and getattr(self, "meta", None) is None
-        ):
-            raise ValueError(
-                "A document MUST contain at least one of 'data', 'errors', or 'meta'"
-            )
-        return self

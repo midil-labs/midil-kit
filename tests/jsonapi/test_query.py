@@ -77,16 +77,16 @@ class TestPaginationParams:
     def test_pagination_params_type_validation(self) -> None:
         """Test type validation for pagination parameters."""
         # String numbers should be converted
-        params = PaginationParams(number="5", size="20")
+        params = PaginationParams(number="5", size="20")  # type: ignore
         assert params.number == 5
         assert params.size == 20
 
         # Invalid types should raise validation error
         with pytest.raises(ValidationError):
-            PaginationParams(number="invalid")
+            PaginationParams(number="invalid")  # type: ignore
 
         with pytest.raises(ValidationError):
-            PaginationParams(size="invalid")
+            PaginationParams(size="invalid")  # type: ignore
 
 
 class TestSortDirection:

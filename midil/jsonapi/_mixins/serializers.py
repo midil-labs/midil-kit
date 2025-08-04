@@ -89,7 +89,6 @@ class DocumentSerializerMixin:
     def to_jsonapi(self) -> Dict[str, Any]:
         result: Dict[str, Any] = {}
         self._add_data(result)
-        self._add_errors(result)
         self._add_meta_jsonapi_links(result)
         self._add_included(result)
         return result
@@ -102,13 +101,6 @@ class DocumentSerializerMixin:
                 if isinstance(data, list)
                 else data.to_jsonapi()
             )
-
-    def _add_errors(self, result: Dict[str, Any]) -> None:
-        errors = getattr(self, "errors", None)
-        if errors:
-            result["errors"] = [
-                e.to_jsonapi() if hasattr(e, "to_jsonapi") else e for e in errors
-            ]
 
     def _add_meta_jsonapi_links(self, result: Dict[str, Any]) -> None:
         for field in ["meta", "jsonapi", "links"]:

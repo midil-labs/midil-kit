@@ -1,6 +1,5 @@
-from typing import Any, Dict, List, Optional, TypeVar, Union, TypeAlias, Generic
-from pydantic import BaseModel, Field, ConfigDict
-from pydantic_core import Url
+from typing import Any, Dict, List, Optional, TypeVar, Union, TypeAlias
+from pydantic import BaseModel, Field, ConfigDict, AnyUrl
 
 from midil.jsonapi._mixins.serializers import (
     DocumentSerializerMixin,
@@ -8,7 +7,6 @@ from midil.jsonapi._mixins.serializers import (
     ResourceSerializerMixin,
 )
 from midil.jsonapi._mixins.validators import (
-    DocumentValidatorMixin,
     ErrorSourceValidatorMixin,
     JSONAPIErrorValidatorMixin,
     ResourceIdentifierValidatorMixin,
@@ -54,7 +52,7 @@ class JSONAPIError(BaseModel, ErrorSerializerMixin, JSONAPIErrorValidatorMixin):
 
 
 class LinkObject(BaseModel):
-    href: Url
+    href: AnyUrl
     rel: Optional[str] = None
     describedby: Optional[str] = None
     title: Optional[str] = None
@@ -79,12 +77,14 @@ class BaseResourceIdentifier(BaseModel):
     meta: Optional[Dict[str, Any]] = None
 
 
-class ExistingResourceIdentifier(BaseResourceIdentifier):
+class ExistingResourceIdentifier(
+    BaseResourceIdentifier, ResourceIdentifierValidatorMixin
+):
     id: Optional[str] = Field(default=None, pattern=r"^[a-zA-Z0-9_-]+$")
     lid: Optional[str] = Field(default=None, pattern=r"^[a-zA-Z0-9_-]+$")
 
 
-class ResourceIdentifier(ExistingResourceIdentifier, ResourceIdentifierValidatorMixin):
+class ResourceIdentifier(ExistingResourceIdentifier):
     pass
 
 
@@ -94,14 +94,10 @@ class Relationship(BaseModel):
     meta: MetaObject = None
 
 
-AttributesT = TypeVar("AttributesT", bound=BaseModel)
-
-
-class Resource(
+class Resource[AttributesT: BaseModel](
     ResourceIdentifier,
     ResourceSerializerMixin,
     ResourceValidatorMixin,
-    Generic[AttributesT],
 ):
     attributes: Optional[AttributesT] = None
     relationships: Optional[Dict[str, Relationship]] = None
@@ -116,18 +112,22 @@ ResourceT = TypeVar(
 )
 
 
-class JSONAPIDocument(
+class JSONAPIDocument[AttributesT: BaseModel](
     BaseModel,
     DocumentSerializerMixin,
-    DocumentValidatorMixin,
-    Generic[AttributesT],
 ):
     data: Optional[Union[Resource[AttributesT], List[Resource[AttributesT]]]] = None
-    errors: Optional[ErrorList] = None
-    meta: MetaObject = None
+    meta: Optional[MetaObject] = None
     jsonapi: Optional[JSONAPIInfo] = Field(default_factory=JSONAPIInfo)
     links: Optional[Links] = None
     included: Optional[List[Resource[BaseModel]]] = None
+
+
+class JSONAPIErrorDocument(BaseModel):
+    errors: List[JSONAPIError]
+    meta: Optional[MetaObject] = None
+    jsonapi: Optional[JSONAPIInfo] = Field(default_factory=JSONAPIInfo)
+    links: Optional[Links] = None
 
 
 class JSONAPIHeader(BaseModel):
@@ -136,7 +136,7 @@ class JSONAPIHeader(BaseModel):
     content_type: str = Field(default=JSONAPI_CONTENT_TYPE, alias="content-type")
 
 
-class JSONAPIRequestBody(BaseModel, Generic[AttributesT]):
+class JSONAPIRequestBody[AttributesT: BaseModel](BaseModel):
     data: Union[Resource[AttributesT], List[Resource[AttributesT]]]
     meta: MetaObject = None
 
