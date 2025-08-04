@@ -3,7 +3,6 @@ from .document import (
     JSONAPIDocument,
     JSONAPIError,
     JSONAPIHeader,
-    JSONAPIQueryParams,
     JSONAPIRequestBody,
     Links,
     ResourceIdentifier,
@@ -18,7 +17,6 @@ from .document import (
 __all__ = [
     "JSONAPIHeader",
     "JSONAPIRequestBody",
-    "JSONAPIQueryParams",
     "JSONAPIDocument",
     "JSONAPIError",
     "ErrorSource",

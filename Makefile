@@ -6,7 +6,7 @@ define run_checks
 	echo "Running poetry check"; \
 	poetry check || exit_code=$$?;\
 	echo "Running mypy"; \
-	mypy . --exclude '/\.venv/' || exit_code=$$?; \
+	mypy midil --exclude '/\.venv/' || exit_code=$$?; \
 	echo "Running ruff"; \
 	ruff check . || exit_code=$$?; \
 	echo "Running black"; \
@@ -119,11 +119,16 @@ pre-commit-install: ## Install pre-commit hooks
 pre-commit-run: ## Run pre-commit on all files
 	poetry run pre-commit run --all-files
 
-changelog: ## Generate changelog from git commits
-	python scripts/changelog.py update
+changelog: ## Generate changelog from news fragments
+	towncrier build --version $(shell poetry version -s)
 
 changelog-preview: ## Preview changelog without writing to file
-	python scripts/changelog.py preview
+	towncrier build --version $(shell poetry version -s) --draft
+
+changelog-draft: ## Create a draft changelog entry
+	@read -p "Enter change type (feature/bugfix/breaking/improvements/deprecation/doc): " change_type; \
+	read -p "Enter a short name for this change: " name; \
+	towncrier create --edit $$name.$$change_type
 
 version: ## Show current version
 	@poetry version -s
