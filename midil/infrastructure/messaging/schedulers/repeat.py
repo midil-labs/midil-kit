@@ -135,11 +135,11 @@ def repeat_every_distributed(
     *,
     seconds: float,
     lock_key: str,
+    redis_url: str,
     wait_first: bool = False,
     raise_exceptions: bool = False,
     max_repetitions: Optional[int] = None,
     lock_ttl: Optional[int] = None,
-    redis_url: str = "redis://localhost:6379",
 ) -> Decorator:
     redis_client = redis.Redis.from_url(redis_url, decode_responses=True)
     ttl = lock_ttl or int(seconds)

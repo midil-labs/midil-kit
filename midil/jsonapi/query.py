@@ -5,11 +5,12 @@ from typing import List, Optional, Annotated
 
 _DEFAULT_PAGE_SIZE = 10
 _MAX_PAGE_SIZE = 100
+_START_PAGE = 1
 
 
 class PaginationParams(BaseModel):
-    number: Annotated[int, Field(ge=1)] = 1
-    size: Annotated[int, Field(ge=1, le=100)] = 10
+    number: Annotated[int, Field(ge=1)] = _START_PAGE
+    size: Annotated[int, Field(ge=1, le=100)] = _DEFAULT_PAGE_SIZE
 
 
 class SortDirection(StrEnum):
