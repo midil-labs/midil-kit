@@ -1,7 +1,3 @@
-"""
-Tests for midil.infrastructure.auth.cognito.jwt_authorizer
-"""
-
 import asyncio
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Tuple
@@ -15,7 +11,7 @@ from midil.infrastructure.auth.cognito.jwt_authorizer import (
     CognitoJWTAuthorizer,
     CognitoTokenClaims,
 )
-from midil.infrastructure.auth.interfaces.authorizer import AuthZTokenClaims
+from midil.infrastructure.auth.interfaces.models import AuthZTokenClaims
 
 # Mark all async tests in this module to use anyio
 pytestmark = pytest.mark.anyio
@@ -457,7 +453,7 @@ async def test_verify_valid_token(
     authorizer: CognitoJWTAuthorizer = CognitoJWTAuthorizer(
         "test-pool", "us-west-2", audience="test-client-id"
     )
-    claims: CognitoTokenClaims = await authorizer.verify(token)
+    claims: AuthZTokenClaims = await authorizer.verify(token)
 
     assert isinstance(claims, CognitoTokenClaims)
     assert claims.email == "user@example.com"

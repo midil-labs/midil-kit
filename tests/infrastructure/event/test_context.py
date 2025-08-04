@@ -1,11 +1,8 @@
-"""
-Tests for midil.infrastructure.messaging.context
-"""
 import pytest
 import contextvars
 from unittest.mock import patch
 
-from midil.infrastructure.messaging.context import (
+from midil.infrastructure.event.context import (
     EventContext,
     get_current_event,
     event_context,
@@ -27,7 +24,7 @@ class TestEventContext:
         assert context.event_type == "test.event"
         assert context.parent is None
 
-    def test_init_with_parent(self):
+    def test_init_with_parent(self) -> None:
         """Test EventContext initialization with parent context."""
         parent = EventContext(id="parent-id", event_type="parent.event")
         child = EventContext(id="child-id", event_type="child.event", parent=parent)
@@ -37,7 +34,7 @@ class TestEventContext:
         assert child.parent == parent
         assert child.parent.id == "parent-id"
 
-    def test_init_with_different_event_types(self):
+    def test_init_with_different_event_types(self) -> None:
         """Test EventContext with various event type formats."""
         event_types = [
             "user.created",
@@ -51,7 +48,7 @@ class TestEventContext:
             context = EventContext(id=f"id-{event_type}", event_type=event_type)
             assert context.event_type == event_type
 
-    def test_parent_chain(self):
+    def test_parent_chain(self) -> None:
         """Test parent chain linking."""
         grandparent = EventContext(id="gp", event_type="grandparent.event")
         parent = EventContext(id="p", event_type="parent.event", parent=grandparent)
@@ -61,7 +58,7 @@ class TestEventContext:
         assert child.parent.parent == grandparent
         assert child.parent.parent.parent is None
 
-    def test_context_equality(self):
+    def test_context_equality(self) -> None:
         """Test EventContext equality comparison."""
         context1 = EventContext(id="same-id", event_type="same.event")
         context2 = EventContext(id="same-id", event_type="same.event")
@@ -71,7 +68,7 @@ class TestEventContext:
         assert context1 is not context2
         assert context1 is not context3
 
-    def test_context_string_representation(self):
+    def test_context_string_representation(self) -> None:
         """Test string representation of EventContext."""
         context = EventContext(id="test-123", event_type="test.event")
         str_repr = str(context)
@@ -83,19 +80,19 @@ class TestEventContext:
 class TestGetCurrentEvent:
     """Tests for get_current_event function."""
 
-    def test_get_current_event_when_not_set(self):
+    def test_get_current_event_when_not_set(self) -> None:
         """Test get_current_event raises when no context is set."""
         # Make sure we're testing in a clean context by using contextvars.copy_context()
         # to run the test in an isolated context
         ctx = contextvars.copy_context()
 
-        def test_in_clean_context():
+        def test_in_clean_context() -> None:
             with pytest.raises(LookupError):
                 get_current_event()
 
         ctx.run(test_in_clean_context)
 
-    def test_get_current_event_when_set(self):
+    def test_get_current_event_when_set(self) -> None:
         """Test get_current_event returns current context when set."""
         test_context = EventContext(id="test-id", event_type="test.event")
         token = _current_event_context.set(test_context)
@@ -112,7 +109,7 @@ class TestGetCurrentEvent:
 class TestEventContextManager:
     """Tests for event_context async context manager."""
 
-    async def test_event_context_basic_usage(self):
+    async def test_event_context_basic_usage(self) -> None:
         """Test basic usage of event_context."""
         async with event_context("test.event") as ctx:
             assert isinstance(ctx, EventContext)
@@ -123,7 +120,7 @@ class TestEventContextManager:
             current = get_current_event()
             assert current == ctx
 
-    async def test_event_context_generates_unique_ids(self):
+    async def test_event_context_generates_unique_ids(self) -> None:
         """Test that event_context generates unique IDs."""
         ids = []
 
@@ -141,7 +138,7 @@ class TestEventContextManager:
             # Should be valid hex
             int(id_str, 16)  # This will raise if not valid hex
 
-    async def test_event_context_nesting(self):
+    async def test_event_context_nesting(self) -> None:
         """Test nesting event contexts."""
         async with event_context("parent.event") as parent_ctx:
             assert parent_ctx.parent is None
@@ -158,7 +155,7 @@ class TestEventContextManager:
             current = get_current_event()
             assert current == parent_ctx
 
-    async def test_event_context_with_parent_override(self):
+    async def test_event_context_with_parent_override(self) -> None:
         """Test event_context with explicit parent override."""
         explicit_parent = EventContext(id="explicit", event_type="explicit.parent")
 
@@ -170,7 +167,7 @@ class TestEventContextManager:
                 assert inner_ctx.parent == explicit_parent
                 assert inner_ctx.parent != outer_ctx
 
-    async def test_event_context_cleanup_on_exception(self):
+    async def test_event_context_cleanup_on_exception(self) -> None:
         """Test that context is properly cleaned up on exception."""
         with pytest.raises(ValueError, match="Test exception"):
             async with event_context("error.event") as ctx:
@@ -185,7 +182,7 @@ class TestEventContextManager:
         with pytest.raises(LookupError):
             get_current_event()
 
-    async def test_event_context_cleanup_on_normal_exit(self):
+    async def test_event_context_cleanup_on_normal_exit(self) -> None:
         """Test that context is properly cleaned up on normal exit."""
         async with event_context("normal.event"):
             # Context should be set inside
@@ -196,7 +193,7 @@ class TestEventContextManager:
         with pytest.raises(LookupError):
             get_current_event()
 
-    async def test_event_context_multiple_levels_cleanup(self):
+    async def test_event_context_multiple_levels_cleanup(self) -> None:
         """Test cleanup with multiple nested levels."""
         async with event_context("level1") as ctx1:
             async with event_context("level2") as ctx2:
@@ -216,13 +213,13 @@ class TestEventContextManager:
         with pytest.raises(LookupError):
             get_current_event()
 
-    async def test_event_context_concurrent_usage(self):
+    async def test_event_context_concurrent_usage(self) -> None:
         """Test event context in concurrent scenarios."""
         import anyio
 
         results = []
 
-        async def worker(event_type: str, worker_id: int):
+        async def worker(event_type: str, worker_id: int) -> None:
             async with event_context(event_type):
                 # Simulate some async work
                 await anyio.sleep(0.01)
@@ -242,8 +239,8 @@ class TestEventContextManager:
         context_ids = [result[1] for result in results]
         assert len(set(context_ids)) == 5
 
-    @patch("midil.infrastructure.messaging.context.uuid4")
-    async def test_event_context_uuid_generation(self, mock_uuid4):
+    @patch("midil.infrastructure.event.context.uuid4")
+    async def test_event_context_uuid_generation(self, mock_uuid4) -> None:
         """Test that event_context uses uuid4 for ID generation."""
         mock_uuid = type("MockUUID", (), {"hex": "mocked-uuid-hex"})()
         mock_uuid4.return_value = mock_uuid
@@ -253,14 +250,16 @@ class TestEventContextManager:
 
         mock_uuid4.assert_called_once()
 
-    async def test_event_context_with_none_parent_override(self):
+    async def test_event_context_with_none_parent_override(self) -> None:
         """Test event_context with None as parent_override."""
         async with event_context("outer.event"):
             # Explicitly set parent to None
             async with event_context("inner.event", parent_override=None) as inner_ctx:
                 assert inner_ctx.parent is None
 
-    async def test_event_context_preserves_existing_parent_when_no_override(self):
+    async def test_event_context_preserves_existing_parent_when_no_override(
+        self,
+    ) -> None:
         """Test that existing parent context is preserved when no override is provided."""
         # Set up an initial context manually
         initial_context = EventContext(id="initial", event_type="initial.event")
@@ -272,7 +271,7 @@ class TestEventContextManager:
         finally:
             _current_event_context.reset(token)
 
-    async def test_event_context_type_annotations(self):
+    async def test_event_context_type_annotations(self) -> None:
         """Test that event_context has proper type annotations."""
         async with event_context("typed.event") as ctx:
             # Should be EventContext type
@@ -283,7 +282,7 @@ class TestEventContextManager:
             assert hasattr(ctx, "event_type")
             assert hasattr(ctx, "parent")
 
-    async def test_event_context_with_empty_event_type(self):
+    async def test_event_context_with_empty_event_type(self) -> None:
         """Test event_context with empty event type."""
         async with event_context("") as ctx:
             assert ctx.event_type == ""

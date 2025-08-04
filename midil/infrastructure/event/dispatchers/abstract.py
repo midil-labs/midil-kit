@@ -5,7 +5,7 @@ from loguru import logger
 from typing import Any, Dict
 from anyio.streams.memory import MemoryObjectSendStream, MemoryObjectReceiveStream
 
-from midil.infrastructure.messaging.context import (
+from midil.infrastructure.event.context import (
     get_current_event,
     event_context,
     EventContext,

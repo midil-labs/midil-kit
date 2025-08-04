@@ -6,8 +6,8 @@ from aiobotocore.session import get_session
 from json import JSONDecodeError
 from loguru import logger
 
-from midil.infrastructure.messaging.context import event_context
-from midil.infrastructure.messaging.dispatchers.polling import dispatcher
+from midil.infrastructure.event.context import event_context
+from midil.infrastructure.event.dispatchers.polling import dispatcher
 
 
 class SQSConsumerException(Exception):

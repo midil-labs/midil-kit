@@ -3,8 +3,8 @@ import anyio
 from unittest.mock import AsyncMock, patch
 from typing import Any
 
-from midil.infrastructure.messaging.dispatchers.abstract import AbstractEventDispatcher
-from midil.infrastructure.messaging.context import EventContext
+from midil.infrastructure.event.dispatchers.abstract import AbstractEventDispatcher
+from midil.infrastructure.event.context import EventContext
 
 pytestmark = pytest.mark.anyio
 
@@ -26,7 +26,7 @@ class TestAbstractEventDispatcher:
     def test_is_abstract(self):
         """Test that AbstractEventDispatcher cannot be instantiated directly."""
         with pytest.raises(TypeError, match="Can't instantiate abstract class"):
-            AbstractEventDispatcher()
+            AbstractEventDispatcher()  # type: ignore
 
     def test_concrete_implementation(self):
         """Test that concrete implementation can be instantiated."""
@@ -59,7 +59,7 @@ class TestAbstractEventDispatcher:
 
             mock_worker.assert_called_once()
 
-    @patch("midil.infrastructure.messaging.dispatchers.abstract.get_current_event")
+    @patch("midil.infrastructure.event.dispatchers.abstract.get_current_event")
     async def test_notify_queues_event(self, mock_get_current_event):
         """Test that notify method queues events correctly."""
         dispatcher = ConcreteEventDispatcher()
@@ -87,7 +87,7 @@ class TestAbstractEventDispatcher:
         assert queued_context.event_type == mock_context.event_type
         assert queued_context is not mock_context  # Should be a copy
 
-    @patch("midil.infrastructure.messaging.dispatchers.abstract.get_current_event")
+    @patch("midil.infrastructure.event.dispatchers.abstract.get_current_event")
     async def test_notify_multiple_events(self, mock_get_current_event):
         """Test queuing multiple events."""
         dispatcher = ConcreteEventDispatcher()
@@ -153,7 +153,7 @@ class TestAbstractEventDispatcher:
 
         # Mock logger to capture exception logging
         with patch(
-            "midil.infrastructure.messaging.dispatchers.abstract.logger"
+            "midil.infrastructure.event.dispatchers.abstract.logger"
         ) as mock_logger:
 
             async def run_worker_briefly():
@@ -194,7 +194,7 @@ class TestAbstractEventDispatcher:
         # Verify the event was processed (which means the stream was consumed)
         dispatcher._notify_mock.assert_called_once_with("done.event", {})
 
-    @patch("midil.infrastructure.messaging.dispatchers.abstract.event_context")
+    @patch("midil.infrastructure.event.dispatchers.abstract.event_context")
     async def test_event_worker_uses_event_context(self, mock_event_context):
         """Test that event worker uses event context manager."""
         dispatcher = ConcreteEventDispatcher()
@@ -225,7 +225,7 @@ class TestAbstractEventDispatcher:
             test_context.event_type, parent_override=test_context
         )
 
-    @patch("midil.infrastructure.messaging.dispatchers.abstract.logger")
+    @patch("midil.infrastructure.event.dispatchers.abstract.logger")
     async def test_event_worker_logging(self, mock_logger):
         """Test that event worker logs appropriately."""
         dispatcher = ConcreteEventDispatcher()
@@ -247,7 +247,7 @@ class TestAbstractEventDispatcher:
             f"Started {dispatcher.__class__.__name__} event worker loop"
         )
 
-    @patch("midil.infrastructure.messaging.dispatchers.abstract.logger")
+    @patch("midil.infrastructure.event.dispatchers.abstract.logger")
     async def test_event_worker_contextualized_logging(self, mock_logger):
         """Test that event worker uses contextualized logging."""
         dispatcher = ConcreteEventDispatcher()
@@ -327,8 +327,8 @@ class TestAbstractEventDispatcher:
         assert isinstance(item[1], str)
         assert isinstance(item[2], dict)
 
-    @patch("midil.infrastructure.messaging.dispatchers.abstract.deepcopy")
-    @patch("midil.infrastructure.messaging.dispatchers.abstract.get_current_event")
+    @patch("midil.infrastructure.event.dispatchers.abstract.deepcopy")
+    @patch("midil.infrastructure.event.dispatchers.abstract.get_current_event")
     async def test_notify_uses_deepcopy(self, mock_get_current_event, mock_deepcopy):
         """Test that notify uses deepcopy for the event context."""
         dispatcher = ConcreteEventDispatcher()

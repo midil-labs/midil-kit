@@ -4,7 +4,7 @@ version = "1.0.4"
 description = "A Python SDK for working with JSON:API specifications"
 authors = ["Engr. Michael Kofi Armah <michael.armah@midil.io>"]
 readme = "README.md"
-keywords = ["midil", "midil-kit", "messaging", "infrastructure", "extensions"]
+keywords = ["midil", "midil-kit", "event", "infrastructure", "extensions"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -40,10 +40,10 @@ fastapi = ["fastapi"]
 # Authentication providers (JWT, Cognito)
 auth = ["python-jose"]
 
-# AWS messaging services (SQS, EventBridge, Scheduler)
-messaging = ["aioboto3"]
+# AWS event services (SQS, EventBridge, Scheduler)
+event = ["aioboto3"]
 
-# AWS infrastructure (combines auth + messaging)
+# AWS infrastructure (combines auth + event)
 aws = ["aioboto3", "python-jose"]
 
 # All optional dependencies

@@ -1,6 +1,3 @@
-"""
-Tests for midil.infrastructure.messaging.dispatchers.polling
-"""
 import pytest
 import anyio
 import inspect
@@ -8,7 +5,7 @@ from typing import Any, Dict
 from unittest.mock import AsyncMock, Mock, patch
 from collections import defaultdict
 
-from midil.infrastructure.messaging.dispatchers.polling import (
+from midil.infrastructure.event.dispatchers.polling import (
     PollingEventDispatcher,
     dispatcher,
     Observer,
@@ -32,7 +29,7 @@ class TestPollingEventDispatcher:
 
     def test_inheritance(self, polling_dispatcher):
         """Test that PollingEventDispatcher inherits from AbstractEventDispatcher."""
-        from midil.infrastructure.messaging.dispatchers.abstract import (
+        from midil.infrastructure.event.dispatchers.abstract import (
             AbstractEventDispatcher,
         )
 
@@ -145,7 +142,7 @@ class TestPollingEventDispatcher:
         """Test _notify method with no registered observers."""
 
         with patch(
-            "midil.infrastructure.messaging.dispatchers.polling.logger"
+            "midil.infrastructure.event.dispatchers.polling.logger"
         ) as mock_logger:
             await polling_dispatcher._notify("nonexistent.event", {"data": "test"})
 
@@ -198,7 +195,7 @@ class TestPollingEventDispatcher:
         polling_dispatcher.register("function.test", function_observer)
 
         with patch(
-            "midil.infrastructure.messaging.dispatchers.polling.logger"
+            "midil.infrastructure.event.dispatchers.polling.logger"
         ) as mock_logger:
             with patch("anyio.create_task_group") as mock_create_task_group:
                 mock_tg = Mock()
@@ -251,7 +248,7 @@ class TestPollingEventDispatcher:
         assert polling_dispatcher._observers["new.event"] == []
         assert isinstance(polling_dispatcher._observers["new.event"], list)
 
-    @patch("midil.infrastructure.messaging.dispatchers.polling.logger")
+    @patch("midil.infrastructure.event.dispatchers.polling.logger")
     async def test_notify_logging_messages(self, mock_logger, polling_dispatcher):
         """Test specific logging messages in _notify."""
 
@@ -320,10 +317,10 @@ class TestPollingEventDispatcher:
 
     def test_global_dispatcher_singleton_behavior(self):
         """Test that the global dispatcher behaves as expected."""
-        from midil.infrastructure.messaging.dispatchers.polling import (
+        from midil.infrastructure.event.dispatchers.polling import (
             dispatcher as dispatcher1,
         )
-        from midil.infrastructure.messaging.dispatchers.polling import (
+        from midil.infrastructure.event.dispatchers.polling import (
             dispatcher as dispatcher2,
         )
 

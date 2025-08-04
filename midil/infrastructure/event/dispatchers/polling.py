@@ -3,7 +3,7 @@ from typing import Callable, Awaitable, Any, Dict, List, Union
 import anyio
 import inspect
 from loguru import logger
-from midil.infrastructure.messaging.dispatchers.abstract import AbstractEventDispatcher
+from midil.infrastructure.event.dispatchers.abstract import AbstractEventDispatcher
 from typing_extensions import ParamSpec, TypeVar
 
 P = ParamSpec("P")

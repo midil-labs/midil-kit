@@ -222,7 +222,7 @@ class TestLinks:
         with pytest.raises(ValidationError):
             Links(
                 self="https://api.example.com/users",
-                custom_link="https://api.example.com/custom",
+                custom_link="https://api.example.com/custom",  # type: ignore
             )
 
 

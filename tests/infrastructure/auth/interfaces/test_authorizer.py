@@ -1,16 +1,11 @@
-"""
-Tests for midil.infrastructure.auth.interfaces.authorizer
-"""
 import pytest
 from abc import ABC
 from datetime import datetime, timezone, timedelta
 from unittest.mock import AsyncMock
 
-from midil.infrastructure.auth.interfaces.authorizer import (
-    AuthZTokenClaims,
-    AuthZProvider,
-)
-
+from midil.infrastructure.auth.interfaces.models import AuthZTokenClaims
+from midil.infrastructure.auth.interfaces.authorizer import AuthZProvider
+from typing import Dict, Any
 
 pytestmark = pytest.mark.anyio
 
@@ -18,7 +13,11 @@ pytestmark = pytest.mark.anyio
 class ConcreteAuthZProvider(AuthZProvider):
     """Concrete implementation for testing."""
 
-    def __init__(self, should_fail=False, claims_data=None):
+    def __init__(
+        self,
+        should_fail: bool = False,
+        claims_data: Dict[str, Any] | None = None,
+    ):
         self.should_fail = should_fail
         self.claims_data = claims_data or {
             "token": "test-token",
@@ -104,7 +103,7 @@ class TestAuthZProvider:
     def test_cannot_instantiate_directly(self):
         """Test that AuthZProvider cannot be instantiated directly."""
         with pytest.raises(TypeError, match="Can't instantiate abstract class"):
-            AuthZProvider()
+            AuthZProvider()  # type: ignore
 
     def test_abstract_methods_required(self):
         """Test that concrete implementations must implement abstract methods."""
@@ -114,7 +113,7 @@ class TestAuthZProvider:
             pass
 
         with pytest.raises(TypeError, match="Can't instantiate abstract class"):
-            IncompleteProvider()
+            IncompleteProvider()  # type: ignore
 
     async def test_concrete_implementation_verify_success(self):
         """Test successful token verification."""

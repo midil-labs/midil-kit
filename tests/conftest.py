@@ -106,7 +106,7 @@ def mock_jwt_token():
 
 @pytest.fixture
 def sample_event_data():
-    """Sample event data for messaging tests."""
+    """Sample event data for event tests."""
     return {
         "event": "user.created",
         "body": {

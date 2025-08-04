@@ -24,7 +24,7 @@ class ConcreteAuthNProvider(AuthNProvider):
         return AuthNToken(token=self.token_value)
 
     async def get_headers(self) -> AuthNHeaders:
-        return AuthNHeaders(authorization=self.header_value)
+        return AuthNHeaders(**{"Authorization": self.header_value})
 
 
 class TestAuthNProvider:
@@ -37,7 +37,7 @@ class TestAuthNProvider:
     def test_cannot_instantiate_directly(self) -> None:
         """Test that AuthNProvider cannot be instantiated directly."""
         with pytest.raises(TypeError, match="Can't instantiate abstract class"):
-            AuthNProvider()
+            AuthNProvider()  # type: ignore
 
     def test_abstract_methods_required(self) -> None:
         """Test that concrete implementations must implement abstract methods."""
@@ -49,7 +49,7 @@ class TestAuthNProvider:
             # Missing get_headers implementation
 
         with pytest.raises(TypeError, match="Can't instantiate abstract class"):
-            IncompleteProvider()
+            IncompleteProvider()  # type: ignore
 
     async def test_concrete_implementation_get_token(self) -> None:
         """Test concrete implementation of get_token method."""
@@ -144,7 +144,7 @@ class TestAuthNProviderMocking:
         """Test mocking get_headers method."""
         provider: MockAuthNProvider = MockAuthNProvider()
         expected_headers: AuthNHeaders = AuthNHeaders(
-            authorization="Bearer mocked-header"
+            **{"Authorization": "Bearer mocked-header"}
         )
         provider.get_headers_mock.return_value = expected_headers
 
@@ -175,7 +175,9 @@ class TestAuthNProviderMocking:
 
         # Setup mocks
         provider.get_token_mock.return_value = AuthNToken(token="test")
-        provider.get_headers_mock.return_value = AuthNHeaders(authorization="test")
+        provider.get_headers_mock.return_value = AuthNHeaders(
+            **{"Authorization": "test"}
+        )
 
         # Call methods multiple times
         await provider.get_token()

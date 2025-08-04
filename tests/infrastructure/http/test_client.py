@@ -1,6 +1,3 @@
-"""
-Tests for midil.infrastructure.http.client
-"""
 import pytest
 from unittest.mock import AsyncMock, Mock
 import httpx
