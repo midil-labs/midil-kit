@@ -12,8 +12,8 @@ from midil.extensions.fastapi.middleware.auth_middleware import (
     AuthContext,
     CognitoAuthMiddleware,
 )
-from midil.infrastructure.auth.interfaces.models import AuthZTokenClaims
-from midil.infrastructure.auth.interfaces.authorizer import AuthZProvider
+from midil.auth.interfaces.models import AuthZTokenClaims
+from midil.auth.interfaces.authorizer import AuthZProvider
 
 
 class TestAuthContext:

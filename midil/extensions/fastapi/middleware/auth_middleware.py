@@ -1,9 +1,9 @@
 from typing import Dict, Any, Callable, Awaitable
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from midil.infrastructure.auth.interfaces.authorizer import AuthZProvider
-from midil.infrastructure.auth.interfaces.models import AuthZTokenClaims
-from midil.infrastructure.auth.cognito.jwt_authorizer import CognitoJWTAuthorizer
+from midil.auth.interfaces.authorizer import AuthZProvider
+from midil.auth.interfaces.models import AuthZTokenClaims
+from midil.auth.cognito.jwt_authorizer import CognitoJWTAuthorizer
 import os
 
 from starlette.responses import Response

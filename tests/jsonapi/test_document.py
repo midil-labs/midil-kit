@@ -54,7 +54,7 @@ def test_jsonapi_error_creation() -> None:
 
 
 def test_link_object_with_url() -> None:
-    link = LinkObject(href="https://api.example.com/posts/1", title="Post")  # type: ignore
+    link = LinkObject(href=AnyUrl("https://api.example.com/posts/1"), title="Post")
     assert isinstance(link.href, AnyUrl)
     assert link.title == "Post"
 

@@ -396,8 +396,8 @@ class TestIntegration:
         assert pagination.size == 20
 
         assert len(sorting.sort) == 2
-        assert sorting.name.direction == SortDirection.ASC
-        assert sorting.created_at.direction == SortDirection.DESC
+        assert sorting.name.direction == SortDirection.ASC  # type: ignore
+        assert sorting.created_at.direction == SortDirection.DESC  # type: ignore
 
         assert "author" in includes.values
         assert "comments.author" in includes.values
