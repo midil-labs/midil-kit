@@ -1,14 +1,5 @@
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
-from midil.infrastructure.auth.interfaces.models import ExpirableTokenMixin
-
-
-class AuthZTokenClaims(ExpirableTokenMixin):
-    sub: str
-    exp: int  # epoch
-
-    def expires_at(self) -> datetime:
-        return datetime.fromtimestamp(self.exp, tz=timezone.utc)
+from midil.infrastructure.auth.interfaces.models import AuthZTokenClaims
 
 
 class AuthZProvider(ABC):

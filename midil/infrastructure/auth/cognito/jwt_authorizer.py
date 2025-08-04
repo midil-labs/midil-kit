@@ -9,8 +9,8 @@ import asyncio
 from loguru import logger
 from midil.infrastructure.auth.interfaces.authorizer import (
     AuthZProvider,
-    AuthZTokenClaims,
 )
+from midil.infrastructure.auth.interfaces.models import AuthZTokenClaims
 from pydantic import Field
 
 
@@ -112,7 +112,7 @@ class CognitoJWTAuthorizer(AuthZProvider):
                     ],  # Require essential security claims
                 },
             )
-            logger.debug(f"Successfully verified JWT token: {decoded}")
+            logger.debug("Successfully verified JWT token", extra={"decoded": decoded})
             claims = CognitoTokenClaims(token=token, **decoded)
             return claims
 

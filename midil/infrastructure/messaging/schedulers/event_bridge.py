@@ -13,7 +13,7 @@ class EventBridgeClient:
         self,
         detail_type: str,
         source: str,
-        detail: dict[str, Any],
+        detail: Dict[str, Any],
         event_bus_name: str = "default",
     ) -> Dict[str, Any]:
         try:
@@ -39,8 +39,7 @@ class EventBridgeClient:
         schedule_name: str,
         endpoint: str,
         execution_time: datetime,
-        session_id: str,
-        checkin_code: str,
+        data: Dict[str, Any],
         role_arn: str,
     ) -> None:
         try:
@@ -52,9 +51,7 @@ class EventBridgeClient:
                     Target={
                         "Arn": endpoint,
                         "RoleArn": role_arn,
-                        "Input": json.dumps(
-                            {"session_id": session_id, "checkin_code": checkin_code}
-                        ),
+                        "Input": json.dumps(data),
                     },
                 )
                 logger.info(

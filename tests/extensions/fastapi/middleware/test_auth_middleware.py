@@ -6,21 +6,24 @@ from unittest.mock import AsyncMock, Mock, patch
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.applications import Starlette
-
+from typing import Callable, Awaitable
 
 from midil.extensions.fastapi.middleware.auth_middleware import (
     AuthContext,
     CognitoAuthMiddleware,
 )
 from midil.infrastructure.auth.interfaces.models import AuthZTokenClaims
+from midil.infrastructure.auth.interfaces.authorizer import AuthZProvider
 
 
 class TestAuthContext:
     """Tests for AuthContext class."""
 
-    def test_auth_context_init(self, mock_cognito_claims):
+    def test_auth_context_init(self, mock_cognito_claims) -> None:
         """Test AuthContext initialization."""
-        claims = AuthZTokenClaims(token="Bearer test-token", **mock_cognito_claims)
+        claims: AuthZTokenClaims = AuthZTokenClaims(
+            token="Bearer test-token", **mock_cognito_claims
+        )
         raw_headers = {
             "authorization": "Bearer token",
             "content-type": "application/json",
@@ -31,7 +34,7 @@ class TestAuthContext:
         assert context.claims == claims
         assert context._raw_headers == raw_headers
 
-    def test_auth_context_to_dict(self, mock_cognito_claims):
+    def test_auth_context_to_dict(self, mock_cognito_claims) -> None:
         """Test AuthContext to_dict method."""
         claims = AuthZTokenClaims(token="Bearer test-token", **mock_cognito_claims)
         raw_headers = {"authorization": "Bearer token"}
@@ -49,7 +52,7 @@ class TestCognitoAuthMiddleware:
     """Tests for CognitoAuthMiddleware class."""
 
     @pytest.fixture
-    def mock_request(self):
+    def mock_request(self) -> Request:
         """Create a mock request."""
         request = Mock(spec=Request)
         request.headers = {"authorization": "Bearer test-token"}
@@ -57,22 +60,22 @@ class TestCognitoAuthMiddleware:
         return request
 
     @pytest.fixture
-    def mock_call_next(self):
+    def mock_call_next(self) -> Callable[[Request], Awaitable[Response]]:
         """Create a mock call_next function."""
 
-        async def call_next(request):
+        async def call_next(request: Request) -> Response:
             return Response("OK")
 
         return call_next
 
     @pytest.fixture
-    def auth_middleware(self):
+    def auth_middleware(self) -> CognitoAuthMiddleware:
         """Create CognitoAuthMiddleware instance."""
         app = Starlette()
         return CognitoAuthMiddleware(app)
 
     @pytest.fixture
-    def mock_authorizer(self, mock_cognito_claims):
+    def mock_authorizer(self, mock_cognito_claims) -> AuthZProvider:
         """Create a mock authorizer."""
         authorizer = AsyncMock()
         claims = AuthZTokenClaims(token="Bearer test-token", **mock_cognito_claims)
@@ -93,7 +96,7 @@ class TestCognitoAuthMiddleware:
         mock_call_next,
         mock_authorizer,
         mock_cognito_claims,
-    ):
+    ) -> None:
         """Test successful authentication in middleware dispatch."""
         # Setup mocks
         mock_authorizer_class.return_value = mock_authorizer
@@ -122,7 +125,7 @@ class TestCognitoAuthMiddleware:
     @patch("midil.extensions.fastapi.middleware.auth_middleware.CognitoJWTAuthorizer")
     async def test_dispatch_authorization_error(
         self, mock_authorizer_class, auth_middleware, mock_request, mock_call_next
-    ):
+    ) -> None:
         """Test middleware behavior when authorization fails."""
         # Setup mock to raise exception
         mock_authorizer = AsyncMock()
@@ -146,7 +149,7 @@ class TestCognitoAuthMiddleware:
         mock_call_next,
         mock_authorizer,
         mock_cognito_claims,
-    ):
+    ) -> None:
         """Test middleware with empty environment variables."""
         # Setup mocks
         mock_authorizer_class.return_value = mock_authorizer
@@ -160,7 +163,9 @@ class TestCognitoAuthMiddleware:
         assert response.status_code == 200
         mock_authorizer_class.assert_called_once_with(user_pool_id="", region="")
 
-    def test_missing_authorization_header(self, auth_middleware, mock_call_next):
+    def test_missing_authorization_header(
+        self, auth_middleware, mock_call_next
+    ) -> None:
         """Test middleware behavior when authorization header is missing."""
         request = Mock(spec=Request)
         request.headers = {}  # No authorization header

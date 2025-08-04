@@ -18,21 +18,21 @@ from midil.jsonapi.query import (
 class TestPaginationParams:
     """Tests for PaginationParams class."""
 
-    def test_pagination_params_defaults(self):
+    def test_pagination_params_defaults(self) -> None:
         """Test PaginationParams with default values."""
         params = PaginationParams()
 
         assert params.number == 1
         assert params.size == 10
 
-    def test_pagination_params_custom_values(self):
+    def test_pagination_params_custom_values(self) -> None:
         """Test PaginationParams with custom values."""
         params = PaginationParams(number=5, size=25)
 
         assert params.number == 5
         assert params.size == 25
 
-    def test_pagination_params_number_validation(self):
+    def test_pagination_params_number_validation(self) -> None:
         """Test that page number must be >= 1."""
         # Valid number
         params = PaginationParams(number=1)
@@ -49,7 +49,7 @@ class TestPaginationParams:
         with pytest.raises(ValidationError):
             PaginationParams(number=-1)
 
-    def test_pagination_params_size_validation(self):
+    def test_pagination_params_size_validation(self) -> None:
         """Test that page size must be between 1 and 100."""
         # Valid sizes
         params = PaginationParams(size=1)
@@ -92,18 +92,18 @@ class TestPaginationParams:
 class TestSortDirection:
     """Tests for SortDirection enum."""
 
-    def test_sort_direction_values(self):
+    def test_sort_direction_values(self) -> None:
         """Test SortDirection enum values."""
         assert SortDirection.ASC == "asc"
         assert SortDirection.DESC == "desc"
 
-    def test_sort_direction_is_string_enum(self):
+    def test_sort_direction_is_string_enum(self) -> None:
         """Test that SortDirection is a string enum."""
         from enum import StrEnum
 
         assert issubclass(SortDirection, StrEnum)
 
-    def test_sort_direction_comparison(self):
+    def test_sort_direction_comparison(self) -> None:
         """Test comparing SortDirection values."""
         assert SortDirection.ASC != SortDirection.DESC
         assert SortDirection.ASC == "asc"
@@ -113,21 +113,21 @@ class TestSortDirection:
 class TestSortField:
     """Tests for SortField class."""
 
-    def test_sort_field_ascending(self):
+    def test_sort_field_ascending(self) -> None:
         """Test SortField for ascending sort."""
         field = SortField("name")
 
         assert field.value == "name"
         assert field.direction == SortDirection.ASC
 
-    def test_sort_field_descending(self):
+    def test_sort_field_descending(self) -> None:
         """Test SortField for descending sort."""
         field = SortField("-name")
 
         assert field.value == "name"
         assert field.direction == SortDirection.DESC
 
-    def test_sort_field_complex_field_names(self):
+    def test_sort_field_complex_field_names(self) -> None:
         """Test SortField with complex field names."""
         # Dot notation
         field = SortField("user.profile.name")
@@ -144,13 +144,13 @@ class TestSortField:
         assert field.value == "created_at"
         assert field.direction == SortDirection.ASC
 
-    def test_sort_field_multiple_dashes(self):
+    def test_sort_field_multiple_dashes(self) -> None:
         """Test SortField with multiple dashes (only first should indicate direction)."""
         field = SortField("-multi-dash-field")
         assert field.value == "multi-dash-field"
         assert field.direction == SortDirection.DESC
 
-    def test_sort_field_root_model(self):
+    def test_sort_field_root_model(self) -> None:
         """Test that SortField is a RootModel."""
         from pydantic import RootModel
 
@@ -159,13 +159,13 @@ class TestSortField:
         field = SortField("test")
         assert hasattr(field, "root")
 
-    def test_sort_field_string_representation(self):
+    def test_sort_field_string_representation(self) -> None:
         """Test string representation of SortField."""
         field = SortField("test_field")
         # Should be able to access the string value
         assert field.value == "test_field"
 
-    def test_sort_field_edge_cases(self):
+    def test_sort_field_edge_cases(self) -> None:
         """Test SortField edge cases."""
         # Empty string
         field = SortField("")
@@ -186,27 +186,27 @@ class TestSortField:
 class TestIncludeField:
     """Tests for IncludeField class."""
 
-    def test_include_field_single_value(self):
+    def test_include_field_single_value(self) -> None:
         """Test IncludeField with single relationship."""
         field = IncludeField(["author"])
         assert field.values == ["author"]
 
-    def test_include_field_multiple_values(self):
+    def test_include_field_multiple_values(self) -> None:
         """Test IncludeField with multiple relationships."""
         field = IncludeField(["author", "comments", "tags"])
         assert field.values == ["author", "comments", "tags"]
 
-    def test_include_field_nested_relationships(self):
+    def test_include_field_nested_relationships(self) -> None:
         """Test IncludeField with nested relationships."""
         field = IncludeField(["author.profile", "comments.author"])
         assert field.values == ["author.profile", "comments.author"]
 
-    def test_include_field_empty_list(self):
+    def test_include_field_empty_list(self) -> None:
         """Test IncludeField with empty list."""
         field = IncludeField([])
         assert field.values == []
 
-    def test_include_field_root_model(self):
+    def test_include_field_root_model(self) -> None:
         """Test that IncludeField is a RootModel."""
         from pydantic import RootModel
 
@@ -215,7 +215,7 @@ class TestIncludeField:
         field = IncludeField(["test"])
         assert hasattr(field, "root")
 
-    def test_include_field_complex_paths(self):
+    def test_include_field_complex_paths(self) -> None:
         """Test IncludeField with complex relationship paths."""
         complex_includes = [
             "user.profile.avatar",
@@ -229,7 +229,7 @@ class TestIncludeField:
 class TestSortQueryParams:
     """Tests for SortQueryParams class."""
 
-    def test_sort_query_params_single_field(self):
+    def test_sort_query_params_single_field(self) -> None:
         """Test SortQueryParams with single sort field."""
         params = SortQueryParams(sort=[SortField("name")])
 
@@ -237,7 +237,7 @@ class TestSortQueryParams:
         assert params.sort[0].value == "name"
         assert params.sort[0].direction == SortDirection.ASC
 
-    def test_sort_query_params_multiple_fields(self):
+    def test_sort_query_params_multiple_fields(self) -> None:
         """Test SortQueryParams with multiple sort fields."""
         sort_fields = [SortField("name"), SortField("-created_at")]
         params = SortQueryParams(sort=sort_fields)
@@ -248,7 +248,7 @@ class TestSortQueryParams:
         assert params.sort[1].value == "created_at"
         assert params.sort[1].direction == SortDirection.DESC
 
-    def test_sort_query_params_string_parsing(self):
+    def test_sort_query_params_string_parsing(self) -> None:
         """Test SortQueryParams parsing from comma-separated string."""
         params = SortQueryParams(sort="name,-created_at,email")
 
@@ -260,7 +260,7 @@ class TestSortQueryParams:
         assert params.sort[2].value == "email"
         assert params.sort[2].direction == SortDirection.ASC
 
-    def test_sort_query_params_string_with_spaces(self):
+    def test_sort_query_params_string_with_spaces(self) -> None:
         """Test SortQueryParams parsing string with spaces."""
         params = SortQueryParams(sort="name, -created_at , email")
 
@@ -269,12 +269,12 @@ class TestSortQueryParams:
         assert params.sort[1].value == "created_at"
         assert params.sort[2].value == "email"
 
-    def test_sort_query_params_empty_string(self):
+    def test_sort_query_params_empty_string(self) -> None:
         """Test SortQueryParams with empty string."""
         params = SortQueryParams(sort="")
         assert len(params.sort) == 0
 
-    def test_sort_query_params_string_with_empty_values(self):
+    def test_sort_query_params_string_with_empty_values(self) -> None:
         """Test SortQueryParams parsing string with empty values."""
         params = SortQueryParams(sort="name,,,-created_at,")
 
@@ -283,7 +283,7 @@ class TestSortQueryParams:
         assert params.sort[0].value == "name"
         assert params.sort[1].value == "created_at"
 
-    def test_sort_query_params_sort_map(self):
+    def test_sort_query_params_sort_map(self) -> None:
         """Test SortQueryParams internal sort map."""
         params = SortQueryParams(sort="name,-created_at,email")
 
@@ -297,7 +297,7 @@ class TestSortQueryParams:
         assert params._sort_map["created_at"].direction == SortDirection.DESC
         assert params._sort_map["email"].direction == SortDirection.ASC
 
-    def test_sort_query_params_getattr(self):
+    def test_sort_query_params_getattr(self) -> None:
         """Test SortQueryParams __getattr__ method."""
         params = SortQueryParams(sort="name,-created_at,email")
 
@@ -315,7 +315,7 @@ class TestSortQueryParams:
         # Non-existent field should return None
         assert params.non_existent is None
 
-    def test_sort_query_params_complex_field_names(self):
+    def test_sort_query_params_complex_field_names(self) -> None:
         """Test SortQueryParams with complex field names."""
         params = SortQueryParams(sort="user.profile.name,-post.created_at")
 
@@ -323,7 +323,7 @@ class TestSortQueryParams:
         assert params._sort_map["user.profile.name"].direction == SortDirection.ASC
         assert params._sort_map["post.created_at"].direction == SortDirection.DESC
 
-    def test_sort_query_params_field_validator_with_list(self):
+    def test_sort_query_params_field_validator_with_list(self) -> None:
         """Test that field validator works correctly with list input."""
         sort_fields = [SortField("name"), SortField("-date")]
         params = SortQueryParams(sort=sort_fields)
@@ -333,7 +333,7 @@ class TestSortQueryParams:
         assert isinstance(params.sort[0], SortField)
         assert isinstance(params.sort[1], SortField)
 
-    def test_sort_query_params_fastapi_compatibility(self):
+    def test_sort_query_params_fastapi_compatibility(self) -> None:
         """Test that SortQueryParams is FastAPI compatible."""
         # Should be able to use as query parameter
         # This tests the structure and typing
@@ -343,7 +343,7 @@ class TestSortQueryParams:
         assert hasattr(params, "sort")
         assert isinstance(params.sort, list)
 
-    def test_sort_query_params_duplicate_fields(self):
+    def test_sort_query_params_duplicate_fields(self) -> None:
         """Test SortQueryParams behavior with duplicate field names."""
         params = SortQueryParams(sort="name,-name,email")
 
@@ -353,7 +353,7 @@ class TestSortQueryParams:
         # But sort map should only have the last occurrence
         assert params._sort_map["name"].direction == SortDirection.DESC
 
-    def test_sort_query_params_initialization_order(self):
+    def test_sort_query_params_initialization_order(self) -> None:
         """Test that initialization properly sets up the sort map."""
         params = SortQueryParams(sort="a,-b,c")
 
@@ -366,15 +366,15 @@ class TestSortQueryParams:
 class TestConstants:
     """Tests for module constants."""
 
-    def test_default_page_size(self):
+    def test_default_page_size(self) -> None:
         """Test DEFAULT_PAGE_SIZE constant."""
         assert _DEFAULT_PAGE_SIZE == 10
 
-    def test_max_page_size(self):
+    def test_max_page_size(self) -> None:
         """Test MAX_PAGE_SIZE constant."""
         assert _MAX_PAGE_SIZE == 100
 
-    def test_constants_match_pagination_defaults(self):
+    def test_constants_match_pagination_defaults(self) -> None:
         """Test that constants match PaginationParams defaults."""
         params = PaginationParams()
         assert params.size == _DEFAULT_PAGE_SIZE
@@ -384,7 +384,7 @@ class TestConstants:
 class TestIntegration:
     """Integration tests for query parameter classes."""
 
-    def test_typical_query_parameter_usage(self):
+    def test_typical_query_parameter_usage(self) -> None:
         """Test typical usage of query parameters together."""
         # Simulate FastAPI query parameters
         pagination = PaginationParams(number=2, size=20)
@@ -402,7 +402,7 @@ class TestIntegration:
         assert "author" in includes.values
         assert "comments.author" in includes.values
 
-    def test_edge_case_combinations(self):
+    def test_edge_case_combinations(self) -> None:
         """Test edge cases when combining different query parameters."""
         # Minimum pagination
         pagination = PaginationParams(number=1, size=1)
@@ -419,7 +419,7 @@ class TestIntegration:
         assert len(sorting.sort) == 0
         assert len(includes.values) == 0
 
-    def test_maximum_values(self):
+    def test_maximum_values(self) -> None:
         """Test with maximum allowed values."""
         # Maximum page size
         pagination = PaginationParams(number=999999, size=100)
@@ -437,7 +437,7 @@ class TestIntegration:
         assert len(sorting.sort) == 4
         assert len(includes.values) == 3
 
-    def test_validation_error_handling(self):
+    def test_validation_error_handling(self) -> None:
         """Test that validation errors are properly raised."""
         # Invalid pagination
         with pytest.raises(ValidationError):
