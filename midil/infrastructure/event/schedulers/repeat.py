@@ -135,13 +135,12 @@ def repeat_every_distributed(
     *,
     seconds: float,
     lock_key: str,
-    redis_url: str,
+    redis_client: redis.Redis,
     wait_first: bool = False,
     raise_exceptions: bool = False,
     max_repetitions: Optional[int] = None,
     lock_ttl: Optional[int] = None,
 ) -> Decorator:
-    redis_client = redis.Redis.from_url(redis_url, decode_responses=True)
     ttl = lock_ttl or int(seconds)
 
     def decorator(func: TaskFunc) -> AsyncFunc:
