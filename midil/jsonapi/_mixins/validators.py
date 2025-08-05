@@ -33,13 +33,3 @@ class ErrorSourceValidatorMixin:
         if not isinstance(pointer, str) or not pointer.startswith("/"):
             raise ValueError("JSON pointer must be a string starting with '/'")
         return pointer
-
-
-class JSONAPIErrorValidatorMixin:
-    @model_validator(mode="after")
-    def validate_error(self) -> "Self":
-        if not (getattr(self, "title", None) or getattr(self, "detail", None)):
-            raise ValueError(
-                "At least one of 'title' or 'detail' must be set in an error object"
-            )
-        return self

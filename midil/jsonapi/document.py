@@ -19,7 +19,6 @@ from midil.jsonapi._mixins.serializers import (
 )
 from midil.jsonapi._mixins.validators import (
     ErrorSourceValidatorMixin,
-    JSONAPIErrorValidatorMixin,
 )
 from midil.jsonapi.config import (
     ForbidExtraFieldsModel,
@@ -99,9 +98,7 @@ class ErrorSource(ForbidExtraFieldsModel, ErrorSourceValidatorMixin):
     header: Optional[str] = None
 
 
-class JSONAPIError(
-    AllowExtraFieldsModel, ErrorSerializerMixin, JSONAPIErrorValidatorMixin, _MetaMixin
-):
+class JSONAPIError(AllowExtraFieldsModel, ErrorSerializerMixin, _MetaMixin):
     """
     Represents an error object as per JSON:API specification.
 
@@ -244,9 +241,9 @@ class Resource(
 
 
 class JSONAPIDocument(
+    Generic[AttributesT],
     IgnoreExtraFieldsModel,
     DocumentSerializerMixin,
-    Generic[AttributesT],
 ):
     """
     Represents a top-level JSON:API document.
@@ -259,13 +256,16 @@ class JSONAPIDocument(
         included: Included related resource objects.
     """
 
-    __parameters__ = (AttributesT,)  # type: ignore
-
     data: Optional[Union[Resource[AttributesT], List[Resource[AttributesT]]]] = None
     meta: Optional[MetaObject] = None
     jsonapi: Optional[JSONAPIInfo] = Field(default_factory=JSONAPIInfo)
     links: Optional[Links] = None
     included: Optional[List[Resource[BaseModel]]] = None
+
+
+class ArticleAttributes(BaseModel):
+    title: str
+    body: str
 
 
 class JSONAPIErrorDocument(ForbidExtraFieldsModel):

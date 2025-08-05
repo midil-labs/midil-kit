@@ -6,7 +6,6 @@ from midil.jsonapi._mixins.validators import (
     ResourceIdentifierValidatorMixin,
     ResourceValidatorMixin,
     ErrorSourceValidatorMixin,
-    JSONAPIErrorValidatorMixin,
 )
 
 
@@ -79,7 +78,7 @@ def test_error_source_invalid_pointer_format():
     assert "must be a string starting with '/'" in str(exc.value)
 
 
-class JSONAPIErrorModel(BaseModel, JSONAPIErrorValidatorMixin):
+class JSONAPIErrorModel(BaseModel):
     title: Optional[str] = None
     detail: Optional[str] = None
 
@@ -92,12 +91,6 @@ def test_error_valid_with_title_only():
 def test_error_valid_with_detail_only():
     model = JSONAPIErrorModel(detail="A detailed explanation")
     assert model.detail is not None
-
-
-def test_error_invalid_with_neither():
-    with pytest.raises(ValidationError) as exc:
-        JSONAPIErrorModel()
-    assert "At least one of 'title' or 'detail'" in str(exc.value)
 
 
 class DocumentModel(BaseModel):
