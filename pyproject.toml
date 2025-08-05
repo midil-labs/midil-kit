@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "midil-kit"
 version = "2.1.0"
-description = "A Python SDK for working with JSON:API specifications"
+description = "A Python SDK for backend systems development @midil.io"
 authors = ["Engr. Michael Kofi Armah <michael.armah@midil.io>"]
 readme = "README.md"
 keywords = ["midil", "midil-kit", "event", "infrastructure", "extensions"]

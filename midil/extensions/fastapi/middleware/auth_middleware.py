@@ -54,6 +54,11 @@ class BaseAuthMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
+        if "authorization" not in request.headers:
+            return Response(
+                content="Authorization header is missing",
+                status_code=401,
+            )
         token = request.headers["authorization"]
 
         authorizer = await self.authorizer(request)

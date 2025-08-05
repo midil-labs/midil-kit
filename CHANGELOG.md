@@ -12,6 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `JSONAPIPatchResource` and `JSONAPIPostResource` to enforce complaince for Patch requests and Post requests specifications respectively
 
 
+## v2.0.1 (2025-01-27)
+
+### Bug Fixes
+
+- Fixed missing authorization header issue in auth middleware
+
+
 ## v2.0.0 (2025-07-13)
 
 ### Features
