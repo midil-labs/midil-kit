@@ -3,7 +3,6 @@ from .document import (
     JSONAPIDocument,
     JSONAPIError,
     JSONAPIHeader,
-    JSONAPIRequestBody,
     Links,
     ResourceIdentifier,
     Relationship,
@@ -11,12 +10,13 @@ from .document import (
     LinkObject,
     MetaObject,
     Resource,
+    JSONAPIPostResource,
+    JSONAPIPatchResource,
 )
 
 
 __all__ = [
     "JSONAPIHeader",
-    "JSONAPIRequestBody",
     "JSONAPIDocument",
     "JSONAPIError",
     "ErrorSource",
@@ -27,4 +27,6 @@ __all__ = [
     "Relationship",
     "JSONAPIInfo",
     "LinkObject",
+    "JSONAPIPostResource",
+    "JSONAPIPatchResource",
 ]

@@ -6,7 +6,7 @@ from loguru import logger
 from starlette.concurrency import run_in_threadpool
 from traceback import format_exception
 
-import redis.asyncio as redis
+import redis.asyncio as redis  # type: ignore
 
 
 AsyncFunc = Callable[[], Coroutine[Any, Any, None]]

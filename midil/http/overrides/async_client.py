@@ -33,7 +33,7 @@ class MidilAsyncClient(httpx.AsyncClient):
             return super()._init_transport(transport=transport, **kwargs)
 
         return self._transport_class(
-            wrapped_transport=httpx.AsyncHTTPTransport(  # type: ignore
+            wrapped=httpx.AsyncHTTPTransport(
                 **kwargs,
             ),
             logger=logger,
