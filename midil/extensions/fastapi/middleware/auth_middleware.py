@@ -5,8 +5,9 @@ from midil.auth.interfaces.authorizer import AuthZProvider
 from midil.auth.interfaces.models import AuthZTokenClaims
 from midil.auth.cognito.jwt_authorizer import CognitoJWTAuthorizer
 import os
-
+from starlette.exceptions import HTTPException
 from starlette.responses import Response
+from midil.auth.exceptions import AuthorizationError
 
 
 class AuthContext:
@@ -54,22 +55,25 @@ class BaseAuthMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
-        if "authorization" not in request.headers:
-            return Response(
-                content="Authorization header is missing",
-                status_code=401,
+        try:
+            if "authorization" not in request.headers:
+                raise HTTPException(
+                    status_code=401, detail="Authorization header is missing"
+                )
+            token = request.headers["authorization"]
+
+            authorizer = await self.authorizer(request)
+            claims = await authorizer.verify(token)
+
+            request.state.auth = AuthContext(
+                claims=claims,
+                _raw_headers=dict(request.headers),
             )
-        token = request.headers["authorization"]
+            response = await call_next(request)
+            return response
 
-        authorizer = await self.authorizer(request)
-        claims = await authorizer.verify(token)
-
-        request.state.auth = AuthContext(
-            claims=claims,
-            _raw_headers=dict(request.headers),
-        )
-        response = await call_next(request)
-        return response
+        except AuthorizationError as e:
+            raise HTTPException(status_code=401, detail=str(e)) from e
 
     async def authorizer(self, request: Request) -> AuthZProvider:
         """

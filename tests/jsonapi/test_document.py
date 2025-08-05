@@ -1,157 +1,104 @@
 import pytest
-from pydantic import ValidationError, BaseModel
-from pydantic import AnyUrl
-
+from pydantic import ValidationError
 from midil.jsonapi.document import (
-    JSONAPIInfo,
+    ErrorObject,
     ErrorSource,
-    JSONAPIError,
-    LinkObject,
-    Links,
-    Relationship,
-    ResourceIdentifier,
-    Resource,
+    ErrorDocument,
     JSONAPIDocument,
-    JSONAPIErrorDocument,
-    JSONAPIPostResource,
-    JSONAPIPatchResource,
-    JSONAPIHeader,
+    ResourceObject,
+    Links,
 )
+from pydantic import BaseModel
 
 
-class ArticleAttributes(BaseModel):
-    title: str
-    body: str
-
-
-def test_jsonapi_info_defaults():
-    info = JSONAPIInfo()
-    assert info.version == "1.1"
-    assert info.meta is None
+class UserAttributes(BaseModel):
+    name: str
+    email: str
 
 
 def test_error_source_valid():
-    src = ErrorSource(pointer="/data/attributes/title")
-    assert src.pointer == "/data/attributes/title"
-
-
-def test_jsonapi_error_minimal():
-    err = JSONAPIError(status="404", title="Not Found", detail="Not Found")
-    assert err.status == "404"
-    assert err.title == "Not Found"
-    assert err.meta is None
-
-
-def test_jsonapi_error_invalid_status():
-    with pytest.raises(ValidationError):
-        JSONAPIError(
-            status="9999", title="Invalid", detail="Invalid"
-        )  # Not a valid HTTP status
-
-
-def test_link_object_full():
-    link = LinkObject(
-        href="https://example.com/articles/1",
-        rel="self",
-        describedby="https://docs.com",
-        title="An article",
-        type="text/html",
-        hreflang=["en", "fr"],
+    src = ErrorSource(
+        pointer="/data/attributes/name", parameter="name", header="X-Custom"
     )
-    assert str(link.href) == "https://example.com/articles/1"
-    assert isinstance(link.hreflang, list)
+    assert src.pointer == "/data/attributes/name"
+    assert src.parameter == "name"
+    assert src.header == "X-Custom"
+
+
+def test_error_source_invalid_pointer():
+    with pytest.raises(ValidationError):
+        ErrorSource(pointer="invalid/pointer")
+
+
+def test_error_object_full():
+    err = ErrorObject(
+        id="err1",
+        status="400",
+        code="invalid_request",
+        title="Invalid request",
+        detail="Missing required field.",
+        source=ErrorSource(pointer="/data/attributes/name"),
+    )
+    err_dict = err.model_dump()
+    assert err_dict["status"] == "400"
+    assert err_dict["source"]["pointer"] == "/data/attributes/name"
+
+
+def test_error_document():
+    err = ErrorObject(
+        id="err1",
+        status="422",
+        title="Unprocessable Entity",
+    )
+    doc = ErrorDocument(errors=[err])
+    assert len(doc.errors) == 1
+    assert doc.jsonapi.version == "1.1"
+    assert doc.errors[0].status == "422"
+
+
+def test_resource_object_serialization():
+    user = ResourceObject[UserAttributes](
+        id="1",
+        type="users",
+        attributes=UserAttributes(name="Jane", email="jane@example.com"),
+    )
+    user_dict = user.model_dump()
+    assert user_dict["type"] == "users"
+    assert user_dict["attributes"]["name"] == "Jane"
+
+
+def test_jsonapi_document_with_single_resource():
+    user = ResourceObject[UserAttributes](
+        id="1",
+        type="users",
+        attributes=UserAttributes(name="Jane", email="jane@example.com"),
+    )
+    doc = JSONAPIDocument[UserAttributes](data=user)
+    assert doc.data.id == "1"
+    assert doc.data.attributes.name == "Jane"
+
+
+def test_jsonapi_document_with_multiple_resources():
+    users = [
+        ResourceObject[UserAttributes](
+            id="1",
+            type="users",
+            attributes=UserAttributes(name="Jane", email="jane@example.com"),
+        ),
+        ResourceObject[UserAttributes](
+            id="2",
+            type="users",
+            attributes=UserAttributes(name="John", email="john@example.com"),
+        ),
+    ]
+    doc = JSONAPIDocument[UserAttributes](data=users)
+    assert isinstance(doc.data, list)
+    assert getattr(getattr(doc.data[1], "attributes"), "name") == "John"
 
 
 def test_links_object():
     links = Links(
-        self=AnyUrl("https://example.com/articles"),
-        next=AnyUrl("https://example.com/articles?page=2"),
+        self="https://api.example.com/users/1", next="https://api.example.com/users/2"
     )
-    assert str(links.self) == "https://example.com/articles"
-
-
-def test_relationship_with_data():
-    rel = Relationship(data=ResourceIdentifier(type="articles", id="123"))
-    assert isinstance(rel.data, ResourceIdentifier)
-    assert rel.data.id == "123"
-
-
-def test_resource_identifier_pattern_valid():
-    rid = ResourceIdentifier(type="articles", id="abc_123")
-    assert rid.id == "abc_123"
-
-
-def test_resource_object():
-    res = Resource[ArticleAttributes](
-        type="articles",
-        id="a1",
-        attributes=ArticleAttributes(title="Hi", body="Body text"),
-    )
-    assert getattr(res.attributes, "title", None) == "Hi"
-
-
-def test_jsonapi_document_single_resource():
-    doc = JSONAPIDocument[ArticleAttributes](
-        data=Resource[ArticleAttributes](
-            type="articles",
-            id="a1",
-            attributes=ArticleAttributes(title="Hi", body="Body text"),
-        )
-    )
-    assert getattr(doc.data, "type", None) == "articles"
-    assert getattr(doc.jsonapi, "version", None) == "1.1"
-
-
-def test_jsonapi_document_multiple_resources():
-    doc = JSONAPIDocument[ArticleAttributes](
-        data=[
-            Resource[ArticleAttributes](
-                type="articles",
-                id="a1",
-                attributes=ArticleAttributes(title="Hi", body="Body text"),
-            ),
-            Resource[ArticleAttributes](
-                type="articles",
-                id="a2",
-                attributes=ArticleAttributes(title="Second", body="More text"),
-            ),
-        ]
-    )
-    assert isinstance(doc.data, list)
-    assert len(doc.data) == 2
-
-
-def test_jsonapi_error_document():
-    err_doc = JSONAPIErrorDocument(
-        errors=[JSONAPIError(status="404", title="Not Found", detail="Not Found")]
-    )
-    assert err_doc.errors[0].status == "404"
-    assert getattr(err_doc.jsonapi, "version", None) == "1.1"
-    assert err_doc.errors[0].detail == "Not Found"
-
-
-def test_jsonapi_post_resource_lid():
-    post_res = JSONAPIPostResource[ArticleAttributes](
-        type="articles",
-        lid="temp123",
-        attributes=ArticleAttributes(title="Hello", body="World"),
-    )
-    assert post_res.lid == "temp123"
-
-
-def test_jsonapi_patch_resource():
-    patch_res = JSONAPIPatchResource[ArticleAttributes](
-        type="articles",
-        id="123",
-        lid="temp123",
-        attributes=ArticleAttributes(title="Updated", body="New Body"),
-    )
-    assert patch_res.id == "123"
-    assert patch_res.lid == "temp123"
-
-
-def test_jsonapi_header_defaults():
-    header = JSONAPIHeader()
-    assert header.version == "1.1"
-    assert header.content_type == "application/vnd.api+json"
-    assert header.accept == "application/vnd.api+json"
+    assert links.self == "https://api.example.com/users/1"
+    assert links.next == "https://api.example.com/users/2"
