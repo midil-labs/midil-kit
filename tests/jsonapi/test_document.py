@@ -52,7 +52,7 @@ def test_error_document():
     )
     doc = ErrorDocument(errors=[err])
     assert len(doc.errors) == 1
-    assert doc.jsonapi.version == "1.1"
+    assert getattr(doc.jsonapi, "version") == "1.1"
     assert doc.errors[0].status == "422"
 
 
@@ -74,8 +74,8 @@ def test_jsonapi_document_with_single_resource():
         attributes=UserAttributes(name="Jane", email="jane@example.com"),
     )
     doc = JSONAPIDocument[UserAttributes](data=user)
-    assert doc.data.id == "1"
-    assert doc.data.attributes.name == "Jane"
+    assert getattr(doc.data, "id") == "1"
+    assert getattr(getattr(doc.data, "attributes"), "name") == "Jane"
 
 
 def test_jsonapi_document_with_multiple_resources():
