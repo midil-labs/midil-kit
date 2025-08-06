@@ -1,11 +1,10 @@
-from .serializers import (
+from midil.jsonapi._mixins.serializers import (
     DocumentSerializerMixin,
     ErrorSerializerMixin,
     ResourceSerializerMixin,
 )
-from .validators import (
+from midil.jsonapi._mixins.validators import (
     ErrorSourceValidatorMixin,
-    JSONAPIErrorValidatorMixin,
     ResourceIdentifierValidatorMixin,
     ResourceValidatorMixin,
 )
@@ -15,7 +14,6 @@ __all__ = [
     "ErrorSerializerMixin",
     "ResourceSerializerMixin",
     "ErrorSourceValidatorMixin",
-    "JSONAPIErrorValidatorMixin",
     "ResourceIdentifierValidatorMixin",
     "ResourceValidatorMixin",
 ]

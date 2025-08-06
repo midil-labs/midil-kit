@@ -1,140 +1,104 @@
 import pytest
 from pydantic import ValidationError
-from pydantic import AnyUrl
-
 from midil.jsonapi.document import (
-    JSONAPIInfo,
+    ErrorObject,
     ErrorSource,
-    JSONAPIError,
-    LinkObject,
-    Links,
-    ResourceIdentifier,
-    Relationship,
+    ErrorDocument,
     JSONAPIDocument,
-    JSONAPIErrorDocument,
-    JSONAPIHeader,
-    JSONAPIRequestBody,
-    Resource,
+    ResourceObject,
+    Links,
 )
-
-# Sample Pydantic model for attributes
 from pydantic import BaseModel
 
 
-class ArticleAttributes(BaseModel):
-    title: str
-    content: str
+class UserAttributes(BaseModel):
+    name: str
+    email: str
 
 
-def test_jsonapi_info_defaults() -> None:
-    info = JSONAPIInfo()
-    assert info.version == "1.1"
-    assert info.meta is None
+def test_error_source_valid():
+    src = ErrorSource(
+        pointer="/data/attributes/name", parameter="name", header="X-Custom"
+    )
+    assert src.pointer == "/data/attributes/name"
+    assert src.parameter == "name"
+    assert src.header == "X-Custom"
 
 
-def test_error_source_fields() -> None:
-    src = ErrorSource(pointer="/data/attributes/title", parameter="title")
-    assert src.pointer == "/data/attributes/title"
-    assert src.parameter == "title"
-    assert src.header is None
+def test_error_source_invalid_pointer():
+    with pytest.raises(ValidationError):
+        ErrorSource(pointer="invalid/pointer")
 
 
-def test_jsonapi_error_creation() -> None:
-    err = JSONAPIError(
+def test_error_object_full():
+    err = ErrorObject(
         id="err1",
         status="400",
-        code="INVALID_TITLE",
-        title="Invalid Title",
-        detail="Title must not be empty",
-        source=ErrorSource(pointer="/data/attributes/title"),
+        code="invalid_request",
+        title="Invalid request",
+        detail="Missing required field.",
+        source=ErrorSource(pointer="/data/attributes/name"),
     )
-    assert err.id == "err1"
-    assert err.status == "400"
-    assert err.source.pointer == "/data/attributes/title"  # type: ignore
+    err_dict = err.model_dump()
+    assert err_dict["status"] == "400"
+    assert err_dict["source"]["pointer"] == "/data/attributes/name"
 
 
-def test_link_object_with_url() -> None:
-    link = LinkObject(href=AnyUrl("https://api.example.com/posts/1"), title="Post")
-    assert isinstance(link.href, AnyUrl)
-    assert link.title == "Post"
-
-
-def test_links_model_strict_keys() -> None:
-    links = Links(self="https://api.example.com/posts")
-    assert links.self == "https://api.example.com/posts"
-    with pytest.raises(ValidationError):
-        Links(self="https://api.example.com", unknown="x")  # type: ignore # extra field
-
-
-def test_resource_identifier_valid() -> None:
-    rid = ResourceIdentifier(type="article", id="a1", lid="l1")
-    assert rid.type == "article"
-    assert rid.id == "a1"
-
-
-def test_resource_identifier_invalid_type() -> None:
-    with pytest.raises(ValidationError):
-        ResourceIdentifier(type="123Invalid", id="a1")
-
-
-def test_relationship_with_data() -> None:
-    rid = ResourceIdentifier(type="author", id="auth1")
-    rel = Relationship(data=rid)
-    assert rel.data == rid
-
-
-def test_jsonapi_document_with_single_resource() -> None:
-    res = Resource[ArticleAttributes](
-        type="article",
-        id="1",
-        attributes=ArticleAttributes(title="Hello", content="World"),
+def test_error_document():
+    err = ErrorObject(
+        id="err1",
+        status="422",
+        title="Unprocessable Entity",
     )
-    doc = JSONAPIDocument[ArticleAttributes](data=res)
-    assert doc.data.attributes.title == "Hello"  # type: ignore
-    assert doc.jsonapi.version == "1.1"  # type: ignore
-
-
-def test_jsonapi_document_with_list_of_resources() -> None:
-    res1 = Resource[ArticleAttributes](
-        type="article",
-        id="1",
-        attributes=ArticleAttributes(title="One", content="Content"),
-    )
-    res2 = Resource[ArticleAttributes](
-        type="article",
-        id="2",
-        attributes=ArticleAttributes(title="Two", content="Content"),
-    )
-    doc = JSONAPIDocument[ArticleAttributes](data=[res1, res2])
-    assert isinstance(doc.data, list)
-    assert doc.data[0].id == "1"
-
-
-def test_jsonapi_error_document_structure() -> None:
-    err = JSONAPIError(
-        status="400",
-        code="REQUIRED_FIELD",
-        title="Missing field",
-        detail="The field 'title' is required",
-    )
-    doc = JSONAPIErrorDocument(errors=[err])
+    doc = ErrorDocument(errors=[err])
     assert len(doc.errors) == 1
-    assert doc.errors[0].title == "Missing field"
+    assert getattr(doc.jsonapi, "version") == "1.1"
+    assert doc.errors[0].status == "422"
 
 
-def test_jsonapi_header_defaults() -> None:
-    header = JSONAPIHeader()
-    assert header.version == "1.1"
-    assert header.accept == "application/vnd.api+json"
-    assert header.content_type == "application/vnd.api+json"
-
-
-def test_jsonapi_request_body_single_resource() -> None:
-    res = Resource[ArticleAttributes](
-        type="article",
-        id="abc123",
-        attributes=ArticleAttributes(title="Post", content="Data"),
+def test_resource_object_serialization():
+    user = ResourceObject[UserAttributes](
+        id="1",
+        type="users",
+        attributes=UserAttributes(name="Jane", email="jane@example.com"),
     )
-    body = JSONAPIRequestBody[ArticleAttributes](data=res)
-    assert body.data.attributes.title == "Post"  # type: ignore
-    assert body.meta is None
+    user_dict = user.model_dump()
+    assert user_dict["type"] == "users"
+    assert user_dict["attributes"]["name"] == "Jane"
+
+
+def test_jsonapi_document_with_single_resource():
+    user = ResourceObject[UserAttributes](
+        id="1",
+        type="users",
+        attributes=UserAttributes(name="Jane", email="jane@example.com"),
+    )
+    doc = JSONAPIDocument[UserAttributes](data=user)
+    assert getattr(doc.data, "id") == "1"
+    assert getattr(getattr(doc.data, "attributes"), "name") == "Jane"
+
+
+def test_jsonapi_document_with_multiple_resources():
+    users = [
+        ResourceObject[UserAttributes](
+            id="1",
+            type="users",
+            attributes=UserAttributes(name="Jane", email="jane@example.com"),
+        ),
+        ResourceObject[UserAttributes](
+            id="2",
+            type="users",
+            attributes=UserAttributes(name="John", email="john@example.com"),
+        ),
+    ]
+    doc = JSONAPIDocument[UserAttributes](data=users)
+    assert isinstance(doc.data, list)
+    assert getattr(getattr(doc.data[1], "attributes"), "name") == "John"
+
+
+def test_links_object():
+    links = Links(
+        self="https://api.example.com/users/1", next="https://api.example.com/users/2"
+    )
+    assert links.self == "https://api.example.com/users/1"
+    assert links.next == "https://api.example.com/users/2"

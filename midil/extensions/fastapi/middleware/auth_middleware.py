@@ -5,16 +5,38 @@ from midil.auth.interfaces.authorizer import AuthZProvider
 from midil.auth.interfaces.models import AuthZTokenClaims
 from midil.auth.cognito.jwt_authorizer import CognitoJWTAuthorizer
 import os
-
+from starlette.exceptions import HTTPException
 from starlette.responses import Response
+from midil.auth.exceptions import AuthorizationError
 
 
 class AuthContext:
+    """
+    Holds decoded token claims and raw authentication headers from a request.
+
+    Attributes:
+        claims (AuthZTokenClaims): The decoded JWT claims.
+        _raw_headers (Dict[str, Any]): Raw HTTP headers related to authentication.
+
+    Usage:
+        ```python
+        context = AuthContext(claims=claims, _raw_headers=request.headers)
+        user_id = context.claims.sub
+        ```
+    """
+
     def __init__(
         self,
         claims: AuthZTokenClaims,
         _raw_headers: Dict[str, Any],
     ) -> None:
+        """
+        Initialize the authentication context.
+
+        Args:
+            claims (AuthZTokenClaims): The decoded token claims.
+            _raw_headers (Dict[str, Any]): Raw HTTP headers from the request.
+        """
         self.claims = claims
         self._raw_headers = _raw_headers
 
@@ -33,17 +55,35 @@ class BaseAuthMiddleware(BaseHTTPMiddleware):
     Subclass this middleware and implement the `authorizer` method to provide a concrete
     AuthZProvider (e.g., CognitoJWTAuthorizer).
 
-    Usage Example:
+    Example:
 
-        def get_auth(request: Request) -> AuthContext:
-            return request.state.auth
+    ```python
+    from fastapi import FastAPI, Depends
+    from midil.auth.interfaces.authorizer import AuthZProvider
+    from midil.auth.interfaces.models import AuthZTokenClaims
+    from midil.extensions.fastapi.middleware.auth_middleware import (
+        AuthContext,
+        BaseAuthMiddleware,
+    )
 
-        @app.get("/me")
-        def me(auth: AuthContext = Depends(get_auth)):
-            return auth.to_dict()
+    app = FastAPI()
 
-        # Add as middleware
-        app.add_middleware(CognitoAuthMiddleware)
+    class MyAuthMiddleware(BaseAuthMiddleware):
+        async def authorizer(self, request: Request) -> AuthZProvider:
+            # implement your authorizer here
+            return AuthZProvider(...)
+
+
+    def get_auth(request: Request) -> AuthContext:
+        return request.state.auth
+
+    @app.get("/me")
+    def me(auth: AuthContext = Depends(get_auth)):
+        return auth.to_dict()
+
+    # Add as middleware
+    app.add_middleware(MyAuthMiddleware)
+    ```
 
     After authentication, the request's state will have an `auth` attribute containing
     an AuthContext instance with the decoded claims and raw headers.
@@ -54,26 +94,44 @@ class BaseAuthMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
-        if "authorization" not in request.headers:
-            return Response(
-                content="Authorization header is missing",
-                status_code=401,
+        try:
+            if "authorization" not in request.headers:
+                raise HTTPException(
+                    status_code=401, detail="Authorization header is missing"
+                )
+            token = request.headers["authorization"]
+
+            authorizer = await self.authorizer(request)
+            claims = await authorizer.verify(token)
+
+            request.state.auth = AuthContext(
+                claims=claims,
+                _raw_headers=dict(request.headers),
             )
-        token = request.headers["authorization"]
+            response = await call_next(request)
+            return response
 
-        authorizer = await self.authorizer(request)
-        claims = await authorizer.verify(token)
-
-        request.state.auth = AuthContext(
-            claims=claims,
-            _raw_headers=dict(request.headers),
-        )
-        response = await call_next(request)
-        return response
+        except AuthorizationError as e:
+            raise HTTPException(status_code=401, detail=str(e)) from e
 
     async def authorizer(self, request: Request) -> AuthZProvider:
         """
-        Authorizer is a class that verifies and decodes a JWT token.
+        Returns an authorization provider for the given request.
+
+        Args:
+            request (Request): The incoming HTTP request.
+
+        Returns:
+            AuthZProvider: An instance capable of verifying JWT tokens.
+
+        Raises:
+            NotImplementedError: If the method is not overridden.
+
+        Usage:
+            ```python
+            authorizer = await middleware.authorizer(request)
+            claims = await authorizer.verify(token)
+            ```
         """
         raise NotImplementedError("Authorizer not implemented")
 
@@ -82,7 +140,16 @@ class CognitoAuthMiddleware(BaseAuthMiddleware):
     """
     Middleware to extract cognitoauth headers from request and store them in the request state.
 
-    Usage:
+    Example:
+    ```python
+    from fastapi import FastAPI, Depends
+    from midil.auth.cognito.jwt_authorizer import CognitoJWTAuthorizer
+    from midil.auth.interfaces.authorizer import AuthZProvider
+    from midil.auth.interfaces.models import AuthZTokenClaims
+    from midil.extensions.fastapi.middleware.auth_middleware import (
+        CognitoAuthMiddleware,
+    )
+    app = FastAPI()
 
         def get_auth(request: Request) -> AuthContext:
             return request.state.auth

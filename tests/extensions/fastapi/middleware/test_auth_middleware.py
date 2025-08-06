@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, Mock, patch
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.applications import Starlette
+from starlette.exceptions import HTTPException
 from typing import Callable, Awaitable
 
 from midil.extensions.fastapi.middleware.auth_middleware import (
@@ -163,7 +164,8 @@ class TestCognitoAuthMiddleware:
         assert response.status_code == 200
         mock_authorizer_class.assert_called_once_with(user_pool_id="", region="")
 
-    def test_missing_authorization_header(
+    @pytest.mark.anyio
+    async def test_missing_authorization_header(
         self, auth_middleware, mock_call_next
     ) -> None:
         """Test middleware behavior when authorization header is missing."""
@@ -171,9 +173,9 @@ class TestCognitoAuthMiddleware:
         request.headers = {}  # No authorization header
         request.state = Mock()
 
-        # This should raise KeyError when trying to access the authorization header
-        with pytest.raises(KeyError):
-            # Use asyncio.run to run the async function
-            import asyncio
+        # The middleware should raise HTTPException with status 401 when authorization header is missing
+        with pytest.raises(HTTPException) as exc_info:
+            await auth_middleware.dispatch(request, mock_call_next)
 
-            asyncio.run(auth_middleware.dispatch(request, mock_call_next))
+        assert exc_info.value.status_code == 401
+        assert exc_info.value.detail == "Authorization header is missing"
