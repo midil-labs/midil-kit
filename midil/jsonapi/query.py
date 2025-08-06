@@ -42,9 +42,6 @@ class PaginationParams(BaseModel):
         populate_by_name = True  # Allows using aliases like page[number]
 
 
-DefaultPagination = PaginationParams()
-
-
 class SortDirection(StrEnum):
     ASC = "asc"
     DESC = "desc"
