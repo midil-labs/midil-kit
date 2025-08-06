@@ -1,16 +1,39 @@
 # Midil Kit
 
-A Python SDK for working with JSON:API specifications. This library provides a comprehensive set of tools for creating, validating, and manipulating JSON:API documents according to the [JSON:API specification](https://jsonapi.org/).
+A comprehensive Python SDK for backend systems development at [midil.io](https://midil.io). This library provides a rich set of tools for building modern, scalable backend applications with support for authentication, event handling, HTTP clients, and JSON:API compliance.
 
-## Features
+## ✨ Features
 
-- **JSON:API Document Creation**: Easily create JSON:API compliant documents
-- **Validation**: Built-in validation for JSON:API structures
-- **Error Handling**: Comprehensive error document creation
-- **Type Safety**: Full type hints and Pydantic models
-- **Utility Functions**: Helper functions for common JSON:API operations
+### 🔐 Authentication & Authorization
+- **JWT Authorization**: Comprehensive JWT token verification and validation
+- **AWS Cognito Integration**: Ready-to-use Cognito client credentials flow and JWT authorizer
+- **Pluggable Auth Providers**: Abstract interfaces for custom authentication implementations
+- **FastAPI Middleware**: Built-in authentication middleware for FastAPI applications
 
-## Installation
+### 📡 Event System
+- **Event Dispatching**: Abstract event dispatcher with polling and AWS integrations
+- **SQS Consumer**: AWS SQS message consumption with automatic retry and context handling
+- **Event Scheduling**: AWS EventBridge integration and periodic task scheduling
+- **Event Context**: Distributed tracing and context management for events
+
+### 🌐 HTTP Client
+- **Enhanced HTTP Client**: HTTPX-based client with authentication integration
+- **Retry Logic**: Configurable retry strategies with exponential backoff and jitter
+- **Transport Layer**: Custom transport with comprehensive error handling
+- **Auth Integration**: Seamless integration with authentication providers
+
+### 📋 JSON:API Compliance
+- **Document Creation**: Full JSON:API compliant document creation and validation
+- **Resource Management**: Type-safe resource objects with relationships
+- **Query Parameters**: Parsing and validation of JSON:API query parameters (sort, include, pagination)
+- **Error Handling**: Standardized JSON:API error document creation
+
+### 🚀 Framework Extensions
+- **FastAPI Integration**: Authentication middleware and JSON:API dependencies
+- **Type Safety**: Full type hints throughout with Pydantic models
+- **Async Support**: Native async/await support across all components
+
+## 📦 Installation
 
 ### Using Poetry (Recommended)
 
@@ -24,102 +47,225 @@ poetry add midil-kit
 pip install midil-kit
 ```
 
-## Quick Start
+### Optional Dependencies
 
-```python
-from jsonapi import (
-    JSONAPIDocument,
-    create_success_document,
-    create_error_document,
-    JSONAPIError
-)
+The library supports optional feature sets through extras:
 
-# Create a success document
-data = {"id": "1", "type": "articles", "attributes": {"title": "JSON:API"}}
-document = create_success_document(data)
+```bash
+# Web framework extensions (FastAPI)
+poetry add midil-kit[fastapi]
 
-# Create an error document
-error = JSONAPIError(
-    status="422",
-    title="Validation Error",
-    detail="The request was invalid"
-)
-error_document = create_error_document([error])
+# Authentication providers (JWT, Cognito)
+poetry add midil-kit[auth]
 
-# Access document properties
-print(document.jsonapi.version)  # "1.0"
-print(document.data.attributes["title"])  # "JSON:API"
+# AWS event services (SQS, EventBridge)
+poetry add midil-kit[event]
+
+# AWS infrastructure (auth + event)
+poetry add midil-kit[aws]
+
+# All optional dependencies
+poetry add midil-kit[all]
 ```
 
-## Usage Examples
+## 🚀 Quick Start
 
-### Creating a Resource Document
+### Authentication with Cognito
 
 ```python
-from jsonapi import JSONAPIDocument, ResourceObject
+from midil.auth.cognito import CognitoClientCredentialsAuthClient, CognitoJWTAuthorizer
 
-# Create a resource object
+# Authentication client for outbound requests
+auth_client = CognitoClientCredentialsAuthClient(
+    client_id="your-client-id",
+    client_secret="your-client-secret",
+    cognito_domain="your-domain.auth.region.amazoncognito.com"
+)
+
+# Get access token
+token = await auth_client.get_token()
+headers = await auth_client.get_headers()
+
+# JWT authorizer for inbound requests
+authorizer = CognitoJWTAuthorizer(
+    user_pool_id="your-user-pool-id",
+    region="us-east-1"
+)
+
+# Verify incoming token
+claims = await authorizer.verify("jwt-token")
+```
+
+### Event System
+
+```python
+from midil.event.dispatchers.polling import PollingEventDispatcher
+from midil.event.consumers.sqs import run_sqs_consumer
+from midil.event.context import event_context
+
+# Event dispatcher
+dispatcher = PollingEventDispatcher()
+
+# Register event handlers
+@dispatcher.on("user.created")
+async def handle_user_created(event: str, body: dict):
+    print(f"User created: {body['user_id']}")
+
+# Start event processing
+await dispatcher.start_event_processor()
+
+# Send events
+await dispatcher.notify("user.created", {"user_id": "123"})
+
+# SQS consumer
+await run_sqs_consumer(
+    queue_url="https://sqs.region.amazonaws.com/account/queue-name",
+    region_name="us-east-1"
+)
+```
+
+### HTTP Client with Authentication
+
+```python
+from midil.http import HttpClient
+from midil.auth.cognito import CognitoClientCredentialsAuthClient
+from httpx import URL
+
+# Create authenticated HTTP client
+auth_client = CognitoClientCredentialsAuthClient(...)
+http_client = HttpClient(
+    auth_client=auth_client,
+    base_url=URL("https://api.example.com")
+)
+
+# Make authenticated requests
+response = await http_client.send_request(
+    method="POST",
+    url="/users",
+    data={"name": "John Doe"}
+)
+```
+
+### JSON:API Documents
+
+```python
+from midil.jsonapi import JSONAPIDocument, ResourceObject, ErrorObject
+
+# Create a resource document
 resource = ResourceObject(
     id="1",
     type="articles",
-    attributes={"title": "JSON:API", "content": "A specification for APIs"}
+    attributes={"title": "JSON:API with Midil Kit", "content": "..."}
 )
 
-# Create a document with the resource
 document = JSONAPIDocument(data=resource)
-```
 
-### Working with Relationships
-
-```python
-from jsonapi import JSONAPIDocument, ResourceObject, Relationship
-
-# Create related resources
-author = ResourceObject(id="1", type="authors", attributes={"name": "John Doe"})
-article = ResourceObject(
-    id="1",
-    type="articles",
-    attributes={"title": "JSON:API"},
-    relationships={
-        "author": Relationship(data=author)
-    }
-)
-
-document = JSONAPIDocument(data=article)
-```
-
-### Error Handling
-
-```python
-from jsonapi import create_error_document, JSONAPIError, ErrorSource
-
-# Create detailed error
-error = JSONAPIError(
+# Create error documents
+error = ErrorObject(
     status="422",
     title="Validation Error",
-    detail="The request was invalid",
-    source=ErrorSource(pointer="/data/attributes/title")
+    detail="Title is required"
 )
 
-error_document = create_error_document([error])
+error_document = JSONAPIDocument(errors=[error])
 ```
 
-## API Reference
+### FastAPI Integration
 
-### Core Classes
+```python
+from fastapi import FastAPI, Depends
+from midil.extensions.fastapi.middleware.auth_middleware import CognitoAuthMiddleware
+from midil.extensions.fastapi.dependencies.jsonapi import parse_sort, parse_include
 
-- `JSONAPIDocument`: Main document class for JSON:API responses
-- `ResourceObject`: Represents a JSON:API resource
-- `JSONAPIError`: Represents an error in a JSON:API response
-- `Relationship`: Represents relationships between resources
+app = FastAPI()
 
-### Utility Functions
+# Add authentication middleware
+app.add_middleware(CognitoAuthMiddleware)
 
-- `create_success_document()`: Create a success document with data
-- `create_error_document()`: Create an error document
-- `create_resource_identifier()`: Create a resource identifier object
+# JSON:API query parameter parsing
+@app.get("/articles")
+async def list_articles(
+    sort=Depends(parse_sort),
+    include=Depends(parse_include)
+):
+    return {"data": [], "meta": {"sort": sort, "include": include}}
 
-## Development
+# Access authenticated user
+def get_auth(request):
+    return request.state.auth
+
+@app.get("/me")
+async def get_current_user(auth=Depends(get_auth)):
+    return {"user_id": auth.claims.sub}
+```
+
+## 📚 API Reference
+
+### Authentication Module (`midil.auth`)
+
+#### Core Interfaces
+- `AuthNProvider`: Abstract authentication provider for outbound requests
+- `AuthZProvider`: Abstract authorization provider for inbound token verification
+- `AuthNToken`: Token model with expiration handling
+- `AuthZTokenClaims`: Token claims model
+
+#### Cognito Implementation
+- `CognitoClientCredentialsAuthClient`: OAuth2 client credentials flow
+- `CognitoJWTAuthorizer`: JWT token verification for Cognito
+
+### Event Module (`midil.event`)
+
+#### Dispatchers
+- `AbstractEventDispatcher`: Base event dispatcher with memory queue
+- `PollingEventDispatcher`: In-memory event dispatcher with observer pattern
+
+#### Consumers
+- `SQSEventConsumer`: AWS SQS message consumer with retry logic
+
+#### Schedulers
+- `AWSEventBridgeClient`: EventBridge integration for scheduled events
+- `PeriodicTask`: Periodic task execution with customizable strategies
+
+#### Context Management
+- `EventContext`: Event tracing and context management
+- `event_context()`: Async context manager for event scoping
+
+### HTTP Module (`midil.http`)
+
+#### Client
+- `HttpClient`: Enhanced HTTP client with auth integration
+- `MidilAsyncClient`: Custom HTTPX client with retry transport
+
+#### Retry System
+- `RetryTransport`: Configurable retry transport layer
+- `DefaultRetryStrategy`: Standard retry strategy implementation
+- `ExponentialBackoffWithJitter`: Backoff strategy with jitter
+
+### JSON:API Module (`midil.jsonapi`)
+
+#### Document Models
+- `JSONAPIDocument`: Main document container
+- `ResourceObject`: Resource representation with attributes and relationships
+- `ErrorObject`: Error representation
+- `QueryParams`: Query parameter parsing and validation
+
+#### Utilities
+- `Sort`, `Include`, `PaginationParams`: Query parameter models
+
+### Extensions Module (`midil.extensions`)
+
+#### FastAPI Integration
+- `BaseAuthMiddleware`: Base authentication middleware
+- `CognitoAuthMiddleware`: Cognito-specific middleware
+- `AuthContext`: Request authentication context
+- `parse_sort()`, `parse_include()`: JSON:API query parameter dependencies
+
+## 🛠️ Development
+
+### Prerequisites
+
+- Python 3.12+
+- Poetry for dependency management
 
 ### Setup
 
@@ -131,69 +277,121 @@ cd midil-kit
 
 2. Install dependencies:
 ```bash
-poetry install
+make install
 ```
 
 3. Install pre-commit hooks:
 ```bash
-poetry run pre-commit install
+make pre-commit-install
 ```
 
-### Running Tests
+### Development Commands
 
 ```bash
-poetry run pytest
-```
+# Run tests
+make test
 
-### Code Formatting
+# Run tests with coverage
+make test-cov
 
-```bash
-poetry run black .
-poetry run isort .
-```
+# Lint code
+make lint
 
-### Type Checking
+# Format code
+make format
 
-```bash
-poetry run mypy .
+# Type checking
+make type-check
+
+# Run all checks
+make check
+
+# Clean build artifacts
+make clean
+
+# Build package
+make build
 ```
 
 ### Changelog Management
 
-The project includes automated changelog generation based on conventional commit messages.
+The project uses [towncrier](https://towncrier.readthedocs.io/) for changelog management:
 
-**Preview changelog changes:**
 ```bash
+# Create a changelog entry
+make changelog-draft
+
+# Preview changelog changes
 make changelog-preview
-```
 
-**Update changelog with new commits:**
-```bash
+# Update changelog
 make changelog
-```
 
-**Create a new release:**
-```bash
-make create-release
-```
-
-**Bump version and prepare release:**
-```bash
+# Prepare a new release
 make release
 ```
 
-## Contributing
+### Testing
+
+```bash
+# Run all tests
+poetry run pytest
+
+# Run with coverage
+poetry run pytest --cov=midil --cov-report=html
+
+# Run specific test file
+poetry run pytest tests/auth/test_cognito.py
+```
+
+### Code Quality
+
+The project enforces code quality through:
+
+- **Black**: Code formatting
+- **Ruff**: Fast Python linter
+- **MyPy**: Static type checking
+- **Pre-commit hooks**: Automated quality checks
+
+## 🏗️ Architecture
+
+### Modular Design
+
+Midil Kit follows a modular architecture:
+
+```
+midil/
+├── auth/           # Authentication & authorization
+├── event/          # Event system & messaging
+├── http/           # HTTP client & retry logic
+├── jsonapi/        # JSON:API compliance
+└── extensions/     # Framework integrations
+    └── fastapi/    # FastAPI-specific extensions
+```
+
+### Design Principles
+
+- **Type Safety**: Comprehensive type hints using Pydantic models
+- **Async First**: Native async/await support throughout
+- **Pluggable**: Abstract interfaces for custom implementations
+- **Framework Agnostic**: Core functionality independent of web frameworks
+- **AWS Native**: First-class support for AWS services
+
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
 4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
+5. Ensure all tests pass (`make check`)
+6. Create a changelog entry (`make changelog-draft`)
+7. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+8. Push to the branch (`git push origin feature/amazing-feature`)
+9. Open a Pull Request
 
 ### Commit Message Format
 
-This project follows the [Conventional Commits](https://www.conventionalcommits.org/) specification. Please use the following format for commit messages:
+This project follows [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
 <type>(<scope>): <description>
@@ -213,35 +411,42 @@ This project follows the [Conventional Commits](https://www.conventionalcommits.
 - `chore`: Changes to the build process or auxiliary tools
 
 **Scopes:**
-- `jsonapi`: JSON:API core functionality
+- `auth`: Authentication & authorization
+- `event`: Event system
+- `http`: HTTP client
+- `jsonapi`: JSON:API functionality
+- `extensions`: Framework extensions
 - `docs`: Documentation
 - `ci`: Continuous integration
-- `deps`: Dependencies
 
 **Examples:**
 ```
-feat(jsonapi): add support for sparse fieldsets
-fix(jsonapi): resolve validation error in relationship serialization
-docs: update README with usage examples
-test: add tests for error document creation
-chore: update dependencies
+feat(auth): add support for refresh tokens
+fix(event): resolve memory leak in event dispatcher
+docs: update installation instructions
+test(jsonapi): add tests for error document creation
 ```
 
-For breaking changes, start the commit body with `BREAKING CHANGE:`:
-```
-feat(jsonapi): remove deprecated ResourceObject constructor
+## 📄 License
 
-BREAKING CHANGE: The ResourceObject constructor signature has changed
-```
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
-## License
+## 🔄 Changelog
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+See [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes.
 
-## Changelog
+### Recent Releases
 
-### 0.1.0
-- Initial release
-- Basic JSON:API document creation and validation
-- Error handling utilities
-- Type-safe Pydantic models
+- **v3.0.0** - Breaking changes with improved naming conventions and PATCH/POST resource compliance
+- **v2.1.0** - Infrastructure packages, FastAPI extensions, and improved interfaces
+- **v2.0.0** - Major architectural improvements with auth, http, and event modules
+
+## 🆘 Support
+
+- 📧 Email: [michael.armah@midil.io](mailto:michael.armah@midil.io)
+- 🌐 Website: [midil.io](https://midil.io)
+- 📚 Documentation: [Coming Soon]
+
+---
+
+Built with ❤️ by the [Midil.io](https://midil.io) team for the Python backend development community.
