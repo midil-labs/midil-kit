@@ -363,7 +363,9 @@ class ResourceObject(
     Inherits:
         type, id, attributes, links, meta, relationships.
 
-    Usage:
+    Example:
+        ```python
+
         class UserAttributes(BaseModel):
             name: str
             email: str
@@ -374,6 +376,7 @@ class ResourceObject(
             attributes=UserAttributes(name="John Doe", email="john.doe@example.com"),
         )
         user_dict = user.model_dump(mode="json")
+        ```
     """
 
     id: IDStr
@@ -395,7 +398,8 @@ class JSONAPIDocument(
         links: Links related to the primary data.
         included: Included related resource objects.
 
-    Usage:
+    Example:
+        ```python
         class UserAttributes(BaseModel):
             name: str
             email: str
@@ -410,7 +414,7 @@ class JSONAPIDocument(
             ),
         )
         user_dict = user.model_dump()
-
+        ```
     """
 
     data: Annotated[
@@ -447,7 +451,8 @@ class ErrorDocument(ForbidExtraFieldsModel):
         jsonapi: Information about the JSON:API implementation.
         links: Links related to the error(s).
 
-    Usage:
+    Example:
+        ```python
         error = ErrorDocument(
             errors=[
                 ErrorObject(
@@ -519,7 +524,8 @@ class PostResource(
     Inherits:
         type, id, attributes, links, meta, relationships, lid.
 
-    Usage:
+    Example:
+        ```python
         class UserAttributes(BaseModel):
             name: str
             email: str
@@ -546,7 +552,8 @@ class PatchResource(
     Inherits:
         type, id, attributes, links, meta, relationships, lid.
 
-    Usage:
+    Example:
+        ```python
         class UserAttributes(BaseModel):
             name: str
             email: str

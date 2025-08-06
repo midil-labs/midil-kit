@@ -2,7 +2,7 @@ import anyio
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from loguru import logger
-from typing import Any, Dict
+from typing import Any, ClassVar, Dict
 from anyio.streams.memory import MemoryObjectSendStream, MemoryObjectReceiveStream
 
 from midil.event.context import (
@@ -13,13 +13,15 @@ from midil.event.context import (
 
 
 class AbstractEventDispatcher(ABC):
+    _MAX_BUFFER_SIZE: ClassVar[int] = 1000
+
     def __init__(self) -> None:
         send_stream: MemoryObjectSendStream[tuple[EventContext, str, Dict[str, Any]]]
         receive_stream: MemoryObjectReceiveStream[
             tuple[EventContext, str, Dict[str, Any]]
         ]
         send_stream, receive_stream = anyio.create_memory_object_stream(
-            max_buffer_size=1000
+            max_buffer_size=self._MAX_BUFFER_SIZE
         )
         self.event_queue = send_stream
         self.receive_stream = receive_stream
