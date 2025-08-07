@@ -17,8 +17,9 @@ jobs:
     steps:
       - name: Label PR by size
         uses: pascalgn/size-label-action@v0.5.5
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO_SCOPES_PAT }}
         with:
-          github_token: ${{ secrets.REPO_SCOPES_PAT }}
           sizes: |
             {
               "0": "XS",
