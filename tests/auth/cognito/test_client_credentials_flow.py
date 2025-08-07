@@ -8,20 +8,20 @@ from unittest.mock import AsyncMock, Mock, patch
 from datetime import datetime, timezone, timedelta
 
 from midil.auth.cognito.client_credentials_flow import (
-    CognitoClientCredentialsAuthClient,
+    CognitoClientCredentialsAuthenticator,
 )
 from midil.auth.interfaces.models import AuthNToken, AuthNHeaders
 from midil.auth.cognito._exceptions import CognitoAuthenticationError
 from midil.auth.interfaces.authenticator import AuthNProvider
 
 
-class TestCognitoClientCredentialsAuthClient:
-    """Tests for CognitoClientCredentialsAuthClient."""
+class TestCognitoClientCredentialsAuthenticator:
+    """Tests for CognitoClientCredentialsAuthenticator."""
 
     @pytest.fixture
     def auth_client(self):
-        """Create a CognitoClientCredentialsAuthClient instance for testing."""
-        return CognitoClientCredentialsAuthClient(
+        """Create a CognitoClientCredentialsAuthenticator instance for testing."""
+        return CognitoClientCredentialsAuthenticator(
             client_id="test-client-id",
             client_secret="test-client-secret",
             token_url="https://cognito.amazonaws.com/oauth2/token",
@@ -30,8 +30,8 @@ class TestCognitoClientCredentialsAuthClient:
 
     @pytest.fixture
     def auth_client_no_scope(self):
-        """Create a CognitoClientCredentialsAuthClient instance without scope."""
-        return CognitoClientCredentialsAuthClient(
+        """Create a CognitoClientCredentialsAuthenticator instance without scope."""
+        return CognitoClientCredentialsAuthenticator(
             client_id="test-client-id",
             client_secret="test-client-secret",
             token_url="https://cognito.amazonaws.com/oauth2/token",
@@ -48,7 +48,7 @@ class TestCognitoClientCredentialsAuthClient:
         }
 
     def test_init(self, auth_client):
-        """Test CognitoClientCredentialsAuthClient initialization."""
+        """Test CognitoClientCredentialsAuthenticator initialization."""
         assert auth_client.client_id == "test-client-id"
         assert auth_client.client_secret == "test-client-secret"
         assert auth_client.token_url == "https://cognito.amazonaws.com/oauth2/token"

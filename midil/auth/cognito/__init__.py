@@ -1,5 +1,5 @@
 from midil.auth.cognito.client_credentials_flow import (
-    CognitoClientCredentialsAuthClient,
+    CognitoClientCredentialsAuthenticator,
 )
 from midil.auth.cognito.jwt_authorizer import CognitoJWTAuthorizer
 from midil.auth.cognito._exceptions import (
@@ -9,7 +9,7 @@ from midil.auth.cognito._exceptions import (
 
 
 __all__ = [
-    "CognitoClientCredentialsAuthClient",
+    "CognitoClientCredentialsAuthenticator",
     "CognitoJWTAuthorizer",
     "CognitoAuthenticationError",
     "CognitoAuthorizationError",

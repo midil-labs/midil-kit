@@ -73,10 +73,10 @@ poetry add midil-kit[all]
 ### Authentication with Cognito
 
 ```python
-from midil.auth.cognito import CognitoClientCredentialsAuthClient, CognitoJWTAuthorizer
+from midil.auth.cognito import CognitoClientCredentialsAuthenticator, CognitoJWTAuthorizer
 
 # Authentication client for outbound requests
-auth_client = CognitoClientCredentialsAuthClient(
+auth_client = CognitoClientCredentialsAuthenticator(
     client_id="your-client-id",
     client_secret="your-client-secret",
     cognito_domain="your-domain.auth.region.amazoncognito.com"
@@ -128,11 +128,11 @@ await run_sqs_consumer(
 
 ```python
 from midil.http import HttpClient
-from midil.auth.cognito import CognitoClientCredentialsAuthClient
+from midil.auth.cognito import CognitoClientCredentialsAuthenticator
 from httpx import URL
 
 # Create authenticated HTTP client
-auth_client = CognitoClientCredentialsAuthClient(...)
+auth_client = CognitoClientCredentialsAuthenticator(...)
 http_client = HttpClient(
     auth_client=auth_client,
     base_url=URL("https://api.example.com")
@@ -210,7 +210,7 @@ async def get_current_user(auth=Depends(get_auth)):
 - `AuthZTokenClaims`: Token claims model
 
 #### Cognito Implementation
-- `CognitoClientCredentialsAuthClient`: OAuth2 client credentials flow
+- `CognitoClientCredentialsAuthenticator`: OAuth2 client credentials flow
 - `CognitoJWTAuthorizer`: JWT token verification for Cognito
 
 ### Event Module (`midil.event`)

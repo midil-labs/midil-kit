@@ -65,7 +65,7 @@ IDStr = Annotated[
     Doc("The resource identifier."),
 ]
 
-ResourceTypeStr = Annotated[
+TypeStr = Annotated[
     str,
     Field(pattern=r"^[a-zA-Z][a-zA-Z0-9_-]*$"),
     Doc("The resource type."),
@@ -323,7 +323,7 @@ class ResourceIdentifierObject(ForbidExtraFieldsModel, _MetaMixin):
     """
 
     id: IDStr
-    type: ResourceTypeStr
+    type: TypeStr
 
 
 class _ResourceBase(
@@ -344,7 +344,7 @@ class _ResourceBase(
         relationships: Relationships to other resources.
     """
 
-    type: ResourceTypeStr
+    type: TypeStr
     attributes: Annotated[
         Optional[AttributesT],
         Doc("The resource's attributes."),
