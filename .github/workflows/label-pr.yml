@@ -9,16 +9,15 @@ jobs:
     steps:
       - uses: actions/labeler@v5
         with:
-          repo-token: "${{ secrets.REPO_SCOPES_PAT }}"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
   size-label:
-    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: size-label
         uses: pascalgn/size-label-action@v0.5.5
         env:
-          GITHUB_TOKEN: ${{ secrets.REPO_SCOPES_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           sizes: |
             {
