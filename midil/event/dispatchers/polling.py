@@ -4,10 +4,8 @@ import anyio
 import inspect
 from loguru import logger
 from midil.event.dispatchers.abstract import AbstractEventDispatcher
-from typing_extensions import ParamSpec, TypeVar
+from typing_extensions import TypeVar
 
-P = ParamSpec("P")
-R = TypeVar("R")
 
 FunctionalObserver = Callable[[str, Dict[str, Any]], Awaitable[Any]]
 MethodObserver = Callable[[Any, str, Dict[str, Any]], Awaitable[Any]]

@@ -44,7 +44,7 @@ class MidilAsyncClient(httpx.AsyncClient):
         self, proxy: httpx.Proxy, **kwargs: Any
     ) -> httpx.AsyncBaseTransport:
         return self._transport_class(
-            wrapped_transport=httpx.AsyncHTTPTransport(  # type: ignore
+            wrapped=httpx.AsyncHTTPTransport(
                 proxy=proxy,
                 **kwargs,
             ),

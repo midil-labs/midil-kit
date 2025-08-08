@@ -1,6 +1,3 @@
-"""
-Tests for midil.extensions.fastapi.middleware.auth_middleware
-"""
 import pytest
 from unittest.mock import AsyncMock, Mock, patch
 from starlette.requests import Request
@@ -86,7 +83,11 @@ class TestCognitoAuthMiddleware:
     @pytest.mark.anyio
     @patch.dict(
         "os.environ",
-        {"COGNITO_USER_POOL_ID": "test-pool-id", "AWS_REGION": "us-east-1"},
+        {
+            "COGNITO__USER_POOL_ID": "test-pool-id",
+            "COGNITO__REGION": "us-east-1",
+            "COGNITO__CLIENT_ID": "test-client-id",
+        },
     )
     @patch("midil.extensions.fastapi.middleware.auth_middleware.CognitoJWTAuthorizer")
     async def test_dispatch_success(
@@ -109,7 +110,7 @@ class TestCognitoAuthMiddleware:
 
         # Verify
         assert response.status_code == 200
-        mock_authorizer.verify.assert_called_once_with("Bearer test-token")
+        mock_authorizer.verify.assert_called_once_with("test-token")
 
         # Check that auth context was set on request state
         assert hasattr(mock_request.state, "auth")
@@ -120,7 +121,11 @@ class TestCognitoAuthMiddleware:
 
     @patch.dict(
         "os.environ",
-        {"COGNITO_USER_POOL_ID": "test-pool-id", "AWS_REGION": "us-east-1"},
+        {
+            "COGNITO__USER_POOL_ID": "test-pool-id",
+            "COGNITO__REGION": "us-east-1",
+            "COGNITO__CLIENT_ID": "test-client-id",
+        },
     )
     @pytest.mark.anyio
     @patch("midil.extensions.fastapi.middleware.auth_middleware.CognitoJWTAuthorizer")
@@ -137,10 +142,13 @@ class TestCognitoAuthMiddleware:
         with pytest.raises(Exception, match="Invalid token"):
             await auth_middleware.dispatch(mock_request, mock_call_next)
 
-        mock_authorizer.verify.assert_called_once_with("Bearer test-token")
+        mock_authorizer.verify.assert_called_once_with("test-token")
 
     @pytest.mark.anyio
-    @patch.dict("os.environ", {"COGNITO_USER_POOL_ID": "", "AWS_REGION": ""})
+    @patch.dict(
+        "os.environ",
+        {"COGNITO__USER_POOL_ID": "", "COGNITO__REGION": "", "COGNITO__CLIENT_ID": ""},
+    )
     @patch("midil.extensions.fastapi.middleware.auth_middleware.CognitoJWTAuthorizer")
     async def test_dispatch_empty_environment(
         self,

@@ -102,3 +102,36 @@ def test_links_object():
     )
     assert links.self == "https://api.example.com/users/1"
     assert links.next == "https://api.example.com/users/2"
+
+
+def test_included_object():
+    class ArticleAttributes(BaseModel):
+        title: str
+        body: str
+
+    user = ResourceObject[UserAttributes](
+        type="users",
+        id="1",
+        attributes=UserAttributes(name="Jane", email="jane@example.com"),
+    )
+    article = ResourceObject[ArticleAttributes](
+        type="articles",
+        id="10",
+        attributes=ArticleAttributes(title="Test Article", body="Content"),
+    )
+    from typing import cast
+
+    doc = JSONAPIDocument[UserAttributes](
+        data=user,
+        included=[cast(ResourceObject[BaseModel], article)],
+    )
+
+    # Check that the included object is present and correct
+    assert doc.included is not None
+    assert len(doc.included) == 1
+    included_obj = doc.included[0]
+    assert included_obj.type == "articles"
+    assert included_obj.id == "10"
+    assert hasattr(included_obj.attributes, "title")
+    assert getattr(included_obj.attributes, "title") == "Test Article"
+    assert getattr(included_obj.attributes, "body") == "Content"

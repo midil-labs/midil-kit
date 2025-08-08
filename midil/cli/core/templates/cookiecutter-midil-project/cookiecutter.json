@@ -1,0 +1,13 @@
+{
+    "project_name": "My MIDIL Project",
+    "project_slug": "{{ cookiecutter.project_name.lower().replace(' ', '-').replace('_', '-') }}",
+    "project_short_description": "A project created with MIDIL CLI",
+    "author_name": "Your Name",
+    "author_email": "your.email@example.com",
+    "service_version": "0.1.0",
+    "python_version": "3.12",
+    "include_docker": "y",
+    "_extensions": [
+        "extensions.VersionExtension"
+    ]
+}

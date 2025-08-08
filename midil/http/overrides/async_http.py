@@ -8,7 +8,7 @@ _http_client_var: contextvars.ContextVar[
     httpx.AsyncClient | None
 ] = contextvars.ContextVar("_http_client_var", default=None)
 
-timeout = 10  # TODO: Make this configurable
+timeout = 60  # TODO: Make this configurable
 
 
 def _get_http_client_context() -> httpx.AsyncClient:

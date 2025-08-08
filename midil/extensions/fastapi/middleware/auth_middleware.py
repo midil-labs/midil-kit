@@ -4,10 +4,10 @@ from starlette.requests import Request
 from midil.auth.interfaces.authorizer import AuthZProvider
 from midil.auth.interfaces.models import AuthZTokenClaims
 from midil.auth.cognito.jwt_authorizer import CognitoJWTAuthorizer
-import os
 from starlette.exceptions import HTTPException
 from starlette.responses import Response
 from midil.auth.exceptions import AuthorizationError
+from midil.config.settings import CognitoSettings
 
 
 class AuthContext:
@@ -99,7 +99,7 @@ class BaseAuthMiddleware(BaseHTTPMiddleware):
                 raise HTTPException(
                     status_code=401, detail="Authorization header is missing"
                 )
-            token = request.headers["authorization"]
+            token = self._resolve_bearer_token(request.headers["authorization"])
 
             authorizer = await self.authorizer(request)
             claims = await authorizer.verify(token)
@@ -135,6 +135,20 @@ class BaseAuthMiddleware(BaseHTTPMiddleware):
         """
         raise NotImplementedError("Authorizer not implemented")
 
+    def _resolve_bearer_token(self, token: str) -> str:
+        """
+        Resolves the bearer token from the Authorization header.
+
+        Args:
+            token (str): The Authorization header value.
+
+        Returns:
+            str: The stripped token without "Bearer " prefix.
+        """
+        if token.startswith("Bearer "):
+            return token.replace("Bearer ", "")
+        return token
+
 
 class CognitoAuthMiddleware(BaseAuthMiddleware):
     """
@@ -164,7 +178,8 @@ class CognitoAuthMiddleware(BaseAuthMiddleware):
     """
 
     async def authorizer(self, request: Request) -> AuthZProvider:
+        cognito_settings = CognitoSettings()
         return CognitoJWTAuthorizer(
-            user_pool_id=os.getenv("COGNITO_USER_POOL_ID", ""),
-            region=os.getenv("AWS_REGION", ""),
+            user_pool_id=cognito_settings.user_pool_id,
+            region=cognito_settings.region,
         )

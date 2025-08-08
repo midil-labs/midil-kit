@@ -9,7 +9,7 @@ from midil.auth.cognito._exceptions import CognitoAuthenticationError
 from midil.http.overrides.async_http import get_http_async_client
 
 
-class CognitoClientCredentialsAuthClient(AuthNProvider):
+class CognitoClientCredentialsAuthenticator(AuthNProvider):
     """Implements the client credentials flow for cognito"""
 
     def __init__(
