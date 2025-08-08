@@ -80,7 +80,7 @@ class CognitoSettings(BaseSettings):
     ]
 
     class Config:
-        env_prefix = "MIDIL_COGNITO__"
+        env_prefix = "COGNITO__"
         env_file = ".env"
         env_file_encoding = "utf-8"
         extra = "allow"

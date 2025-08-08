@@ -3,31 +3,9 @@ from typing import Optional, Any, List, Dict
 from pydantic import BaseModel, ValidationError
 
 from midil.jsonapi._mixins.validators import (
-    ResourceIdentifierValidatorMixin,
     ResourceValidatorMixin,
     ErrorSourceValidatorMixin,
 )
-
-
-class ResourceIdentifierModel(BaseModel, ResourceIdentifierValidatorMixin):
-    id: Optional[str] = None
-    lid: Optional[str] = None
-
-
-def test_resource_identifier_valid_with_id():
-    model = ResourceIdentifierModel(id="123")
-    assert model.id == "123"
-
-
-def test_resource_identifier_valid_with_lid():
-    model = ResourceIdentifierModel(lid="temp-abc")
-    assert model.lid == "temp-abc"
-
-
-def test_resource_identifier_invalid_missing_both():
-    with pytest.raises(ValidationError) as exc:
-        ResourceIdentifierModel()
-    assert "Either 'id' or 'lid' must be provided" in str(exc.value)
 
 
 class ResourceModel(BaseModel, ResourceValidatorMixin):

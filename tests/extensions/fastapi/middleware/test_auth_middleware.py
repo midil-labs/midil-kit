@@ -83,7 +83,11 @@ class TestCognitoAuthMiddleware:
     @pytest.mark.anyio
     @patch.dict(
         "os.environ",
-        {"COGNITO_USER_POOL_ID": "test-pool-id", "AWS_REGION": "us-east-1"},
+        {
+            "COGNITO__USER_POOL_ID": "test-pool-id",
+            "COGNITO__REGION": "us-east-1",
+            "COGNITO__CLIENT_ID": "test-client-id",
+        },
     )
     @patch("midil.extensions.fastapi.middleware.auth_middleware.CognitoJWTAuthorizer")
     async def test_dispatch_success(
@@ -117,7 +121,11 @@ class TestCognitoAuthMiddleware:
 
     @patch.dict(
         "os.environ",
-        {"COGNITO_USER_POOL_ID": "test-pool-id", "AWS_REGION": "us-east-1"},
+        {
+            "COGNITO__USER_POOL_ID": "test-pool-id",
+            "COGNITO__REGION": "us-east-1",
+            "COGNITO__CLIENT_ID": "test-client-id",
+        },
     )
     @pytest.mark.anyio
     @patch("midil.extensions.fastapi.middleware.auth_middleware.CognitoJWTAuthorizer")
@@ -137,7 +145,10 @@ class TestCognitoAuthMiddleware:
         mock_authorizer.verify.assert_called_once_with("test-token")
 
     @pytest.mark.anyio
-    @patch.dict("os.environ", {"COGNITO_USER_POOL_ID": "", "AWS_REGION": ""})
+    @patch.dict(
+        "os.environ",
+        {"COGNITO__USER_POOL_ID": "", "COGNITO__REGION": "", "COGNITO__CLIENT_ID": ""},
+    )
     @patch("midil.extensions.fastapi.middleware.auth_middleware.CognitoJWTAuthorizer")
     async def test_dispatch_empty_environment(
         self,

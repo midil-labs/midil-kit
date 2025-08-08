@@ -522,7 +522,7 @@ class PostResource(
     https://jsonapi.org/format/#crud-creating
 
     Inherits:
-        type, id, attributes, links, meta, relationships, lid.
+        type, attributes, links, meta, relationships, lid.
 
     Example:
         ```python
