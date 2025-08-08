@@ -7,9 +7,9 @@ class LambdaFunctionScaffolder(ProjectScaffolder):
     Concrete scaffolder using Cookiecutter.
     """
 
-    def __init__(self, template_dir: Path, allow_user_input: bool = False):
+    def __init__(self, template_dir: Path, no_user_input: bool = False):
         self.template_dir = template_dir
-        self.allow_user_input = allow_user_input
+        self.no_user_input = no_user_input
 
     def scaffold(self, name: str) -> None:
         # TODO: Implement lambda project scaffolding

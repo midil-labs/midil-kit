@@ -1,4 +1,3 @@
-# midil/cli/main.py
 import click
 from midil.cli.commands.init import init_command
 from midil.cli.commands.launch import launch_command

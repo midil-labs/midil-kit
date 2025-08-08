@@ -1,4 +1,3 @@
-# midil/cli/commands/test.py
 import click
 from midil.cli.core.testing.options import TestOptions
 from midil.cli.core.testing.runner import PytestRunner

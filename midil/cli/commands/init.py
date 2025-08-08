@@ -1,9 +1,6 @@
-# midil/cli/commands/init.py
 import click
-from rich.console import Console
 from midil.cli.core.scaffolds import scaffold_project
-
-console = Console()
+from midil.cli.commands._common import console
 
 
 @click.command("init")

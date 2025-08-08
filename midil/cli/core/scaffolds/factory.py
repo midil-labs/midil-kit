@@ -1,9 +1,9 @@
 from pathlib import Path
 from midil.cli.core.scaffolds.base import ProjectScaffolder
-from midil.cli.core.scaffolds.project import FastAPIServiceScaffolder
+from midil.cli.core.scaffolds.fastapi import FastAPIServiceScaffolder
 from midil.cli.core.scaffolds.lambda_function import LambdaFunctionScaffolder
 
-_ALLOW_USER_INPUT = True
+_NO_USER_INPUT = False
 
 
 class ProjectScaffolderFactory:
@@ -16,14 +16,10 @@ class ProjectScaffolderFactory:
         template_base = Path(__file__).parent.parent / "templates"
         if project_type == "fastapi":
             template_path = template_base / "cookiecutter-midil-project"
-            return FastAPIServiceScaffolder(
-                template_path, allow_user_input=_ALLOW_USER_INPUT
-            )
+            return FastAPIServiceScaffolder(template_path, no_user_input=_NO_USER_INPUT)
         elif project_type == "lambda":
             template_path = template_base / "cookiecutter-midil-lambda"
-            return LambdaFunctionScaffolder(
-                template_path, allow_user_input=_ALLOW_USER_INPUT
-            )
+            return LambdaFunctionScaffolder(template_path, no_user_input=_NO_USER_INPUT)
         else:
             raise ValueError(f"Unknown project type: {project_type}")
 

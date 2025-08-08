@@ -59,3 +59,7 @@ coverage.xml
 
 # Docker
 .dockerignore
+
+# Ruff
+ruff_cache/
+.ruff_cache/

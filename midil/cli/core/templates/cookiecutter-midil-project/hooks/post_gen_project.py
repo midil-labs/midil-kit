@@ -1,43 +1,88 @@
-import os
 from pathlib import Path
+from abc import ABC, abstractmethod
+from typing import Iterable, Optional
 
 
-def handle_conditional_files() -> None:
-    """Remove files based on user configuration choices."""
-    # Remove Docker files if not needed
-    if "{{ cookiecutter.include_docker }}" != "y":
-        docker_files = ["Dockerfile", "docker-compose.yml"]
-        for file in docker_files:
-            if os.path.exists(file):
-                os.remove(file)
+class ProjectHook(ABC):
+    """Abstract base class for project post-generation hooks."""
+
+    @abstractmethod
+    def execute(self) -> None:
+        pass
 
 
-def create_directories() -> None:
-    """Create additional directories for project structure."""
-    directories = [
-        "tests",
-        "{{ cookiecutter.project_slug }}",
-    ]
+class ListProcessingHook(ProjectHook, ABC):
+    """Base hook that processes a list of string paths/items."""
 
-    for directory in directories:
-        os.makedirs(directory, exist_ok=True)
+    def __init__(self, items: Optional[Iterable[str]] = None):
+        self.items = list(items or [])
+
+    @abstractmethod
+    def process_item(self, item: str) -> None:
+        pass
+
+    def execute(self) -> None:
+        for item in self.items:
+            self.process_item(item)
 
 
-def create_init_files() -> None:
-    """Create __init__.py files for Python packages."""
-    init_files = [
-        "{{ cookiecutter.project_slug }}/__init__.py",
-        "tests/__init__.py",
-    ]
+class ConditionalFileRemover(ListProcessingHook):
+    """Removes files based on user configuration choices."""
 
-    for init_file in init_files:
-        Path(init_file).touch()
+    def __init__(self, docker_flag: str, files: Optional[Iterable[str]] = None):
+        default_files = ["Dockerfile", "docker-compose.yml"]
+        super().__init__(files or default_files)
+        self.docker_flag = docker_flag
+
+    def execute(self) -> None:
+        if self.docker_flag != "y":
+            super().execute()
+
+    def process_item(self, item: str) -> None:
+        path = Path(item)
+        if path.exists():
+            path.unlink()
+
+
+class DirectoryCreator(ListProcessingHook):
+    """Creates additional directories for project structure."""
+
+    def __init__(self, directories: Optional[Iterable[str]] = None):
+        super().__init__(directories or ["tests"])
+
+    def process_item(self, item: str) -> None:
+        Path(item).mkdir(parents=True, exist_ok=True)
+
+
+class FileCreator(ListProcessingHook):
+    """Creates .py files for Python packages."""
+
+    def __init__(self, files: Optional[Iterable[str]] = None):
+        super().__init__(files or ["tests/__init__.py"])
+
+    def process_item(self, item: str) -> None:
+        Path(item).touch()
+
+
+class PostGenProjectManager:
+    """Coordinates execution of post-generation hooks."""
+
+    def __init__(self, hooks: Iterable[ProjectHook]):
+        self.hooks = list(hooks)
+
+    def run(self) -> None:
+        for hook in self.hooks:
+            hook.execute()
 
 
 def main() -> None:
-    handle_conditional_files()
-    create_directories()
-    create_init_files()
+    hooks = [
+        ConditionalFileRemover("{{ cookiecutter.include_docker }}"),
+        DirectoryCreator(),
+        FileCreator(),
+    ]
+    manager = PostGenProjectManager(hooks)
+    manager.run()
 
 
 if __name__ == "__main__":
