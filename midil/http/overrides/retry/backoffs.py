@@ -1,30 +1,49 @@
 import random
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Mapping
 from dateutil.parser import isoparse
 
 
+@dataclass(frozen=True)
+class BackoffConfig:
+    base_delay: float = 0.1  # starting delay in seconds
+    max_delay: float = 60.0  # max cap in seconds
+    jitter_ratio: float = 0.1  # % of base delay to apply as jitter
+    respect_retry_after: bool = True
+    backoff_header: str = "Retry-After"
+
+
 class ExponentialBackoffWithJitter:
-    def __init__(
-        self, base_delay=0.1, max_delay=60.0, jitter_ratio=0.1, respect_retry_after=True
-    ):
-        self.base_delay = base_delay
-        self.max_delay = max_delay
-        self.jitter_ratio = jitter_ratio
-        self.respect_retry_after = respect_retry_after
+    def __init__(self, config: BackoffConfig | None = None):
+        self.config = config or BackoffConfig()
 
     def calculate_sleep(self, attempt: int, headers: Mapping[str, str]) -> float:
-        retry_after = (headers.get("Retry-After") or "").strip()
-        if self.respect_retry_after and retry_after:
-            if retry_after.isdigit():
-                return min(float(retry_after), self.max_delay)
-            try:
-                parsed_date = isoparse(retry_after).astimezone()
-                diff = (parsed_date - datetime.now().astimezone()).total_seconds()
-                return min(max(diff, 0), self.max_delay)
-            except ValueError:
-                pass
+        """
+        Calculate the delay before the next retry attempt.
 
-        base = self.base_delay * (2 ** (attempt - 1))
-        jitter = base * self.jitter_ratio * random.choice([-1, 1])
-        return min(base + jitter, self.max_delay)
+        :param attempt: The retry attempt number (1-based).
+        :param headers: HTTP headers that may contain Retry-After.
+        :return: Delay in seconds.
+        """
+        cfg = self.config
+
+        retry_after_value = (headers.get(cfg.backoff_header) or "").strip()
+        if cfg.respect_retry_after and retry_after_value:
+            # Retry-After in seconds
+            if retry_after_value.isdigit():
+                return min(float(retry_after_value), cfg.max_delay)
+
+            try:
+                parsed_date = isoparse(retry_after_value).astimezone()
+                diff = (parsed_date - datetime.now().astimezone()).total_seconds()
+                return min(max(diff, 0), cfg.max_delay)
+            except (ValueError, OverflowError):
+                pass  # fall through to exponential backoff
+
+        base = cfg.base_delay * (2 ** (attempt - 1))
+
+        jitter_amount = base * cfg.jitter_ratio
+        jitter = random.uniform(-jitter_amount, jitter_amount)
+
+        return min(base + jitter, cfg.max_delay)
