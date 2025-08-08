@@ -1,24 +1,27 @@
-name: Pull Request Labeling
-
+name: "Pull Request Labeler"
 on:
-  - pull_request_target
+- pull_request_target
 
 jobs:
   triage:
+    permissions:
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/labeler@v5
-        with:
-          repo-token: "${{ secrets.REPO_SCOPES_PAT }}"
+    - uses: actions/labeler@v5
+      with:
+        repo-token: "${{ secrets.GITHUB_TOKEN }}"
 
   size-label:
     runs-on: ubuntu-latest
     steps:
       - name: size-label
-        uses: "pascalgn/size-label-action@v0.5.5"
+        uses: "pascalgn/size-label-action@v0.5.2"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         with:
-          github_token: "${{ secrets.REPO_SCOPES_PAT }}"
-          sizes: |
+          sizes: >
             {
               "0": "XS",
               "20": "S",
