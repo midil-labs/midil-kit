@@ -1,6 +1,3 @@
-"""
-Tests for midil.extensions.fastapi.middleware.auth_middleware
-"""
 import pytest
 from unittest.mock import AsyncMock, Mock, patch
 from starlette.requests import Request
@@ -109,7 +106,7 @@ class TestCognitoAuthMiddleware:
 
         # Verify
         assert response.status_code == 200
-        mock_authorizer.verify.assert_called_once_with("Bearer test-token")
+        mock_authorizer.verify.assert_called_once_with("test-token")
 
         # Check that auth context was set on request state
         assert hasattr(mock_request.state, "auth")
@@ -137,7 +134,7 @@ class TestCognitoAuthMiddleware:
         with pytest.raises(Exception, match="Invalid token"):
             await auth_middleware.dispatch(mock_request, mock_call_next)
 
-        mock_authorizer.verify.assert_called_once_with("Bearer test-token")
+        mock_authorizer.verify.assert_called_once_with("test-token")
 
     @pytest.mark.anyio
     @patch.dict("os.environ", {"COGNITO_USER_POOL_ID": "", "AWS_REGION": ""})
