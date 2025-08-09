@@ -24,7 +24,6 @@ from midil.jsonapi._mixins.validators import (
 from midil.jsonapi.config import (
     ForbidExtraFieldsModel,
     AllowExtraFieldsModel,
-    IgnoreExtraFieldsModel,
 )
 from typing_extensions import Doc
 from pydantic import HttpUrl
@@ -74,8 +73,8 @@ TypeStr = Annotated[
 AttributesT = TypeVar("AttributesT", bound=BaseModel)
 
 # Constants
-JSONAPI_CONTENT_TYPE = "application/vnd.api+json"
-JSONAPI_ACCEPT = "application/vnd.api+json"
+JSONAPI_CONTENT_TYPE = "application/vnd.midil+json"
+JSONAPI_ACCEPT = "application/vnd.midil+json"
 JSONAPI_VERSION = "1.1"
 
 
@@ -327,6 +326,7 @@ class ResourceIdentifierObject(ForbidExtraFieldsModel, _MetaMixin):
 
 
 class _ResourceBase(
+    ForbidExtraFieldsModel,
     ResourceSerializerMixin,
     _LinksMixin,
     _MetaMixin,
@@ -382,10 +382,10 @@ class ResourceObject(
     id: IDStr
 
 
-class JSONAPIDocument(
-    Generic[AttributesT],
-    IgnoreExtraFieldsModel,
+class Document(
+    ForbidExtraFieldsModel,
     DocumentSerializerMixin,
+    Generic[AttributesT],
 ):
     """
     Represents a top-level JSON:API document.
@@ -404,7 +404,7 @@ class JSONAPIDocument(
             name: str
             email: str
 
-        UserDocument : TypeAlias = JSONAPIDocument[UserAttributes]
+        UserDocument : TypeAlias = Document[UserAttributes]
 
         user = UserDocument(
             data=UserResource(
@@ -418,9 +418,9 @@ class JSONAPIDocument(
     """
 
     data: Annotated[
-        Optional[Union[ResourceObject[AttributesT], List[ResourceObject[AttributesT]]]],
+        Union[ResourceObject[AttributesT], List[ResourceObject[AttributesT]]],
         Doc("The primary data (resource object(s) or null)."),
-    ] = None
+    ]
     meta: Annotated[
         Optional[MetaType],
         Doc("Non-standard meta-information."),
@@ -432,10 +432,6 @@ class JSONAPIDocument(
     links: Annotated[
         Optional[Links],
         Doc("Links related to the primary data."),
-    ] = None
-    included: Annotated[
-        Optional[List[ResourceObject[BaseModel]]],
-        Doc("Included related resource objects."),
     ] = None
 
 
@@ -491,7 +487,7 @@ class ErrorDocument(ForbidExtraFieldsModel):
     ] = None
 
 
-class JSONAPIHeader(AllowExtraFieldsModel):
+class Header(AllowExtraFieldsModel):
     """
     Represents HTTP headers for JSON:API requests and responses.
 
@@ -503,18 +499,18 @@ class JSONAPIHeader(AllowExtraFieldsModel):
 
     version: Annotated[
         str,
-        Field(alias="jsonapi-version"),
         Doc("The JSON:API version (as 'jsonapi-version' header)."),
     ] = JSONAPI_VERSION
     accept: Annotated[
         str,
-        Field(default=JSONAPI_ACCEPT),
+        Doc("The Accept header value."),
     ] = JSONAPI_ACCEPT
 
 
-class PostResource(
-    _ResourceBase[AttributesT],
-    ResourceSerializerMixin,
+class PostDocument(
+    ForbidExtraFieldsModel,
+    DocumentSerializerMixin,
+    Generic[AttributesT],
 ):
     """
     Represents a resource object for POST requests (resource creation).
@@ -530,19 +526,35 @@ class PostResource(
             name: str
             email: str
 
-        user = JSONAPIPostResource(
+        user = PostResource(
             type="users",
-            id="1",
             attributes=UserAttributes(name="John Doe", email="john.doe@example.com"),
         )
         user_dict = user.model_dump(mode="json")
     """
 
-    pass
+    data: Annotated[
+        _ResourceBase[AttributesT],
+        Doc("The resource object."),
+    ]
+    meta: Annotated[
+        Optional[MetaType],
+        Doc("Non-standard meta-information."),
+    ] = None
+    jsonapi: Annotated[
+        Optional[JSONAPIObject],
+        Doc("Information about the JSON:API implementation."),
+    ] = JSONAPIObject()
+    links: Annotated[
+        Optional[Links],
+        Doc("Links related to the primary data."),
+    ] = None
 
 
-class PatchResource(
-    ResourceObject[AttributesT],
+class PatchDocument(
+    ForbidExtraFieldsModel,
+    DocumentSerializerMixin,
+    Generic[AttributesT],
 ):
     """
     Represents a resource object for PATCH requests (resource update).
@@ -558,7 +570,7 @@ class PatchResource(
             name: str
             email: str
 
-        user = JSONAPIPatchResource(
+        user = PatchDocument(
             type="users",
             id="1",
             attributes=UserAttributes(name="John Doe", email="john.doe@example.com"),
@@ -566,4 +578,73 @@ class PatchResource(
         user_dict = user.model_dump(mode="json")
     """
 
-    pass
+    data: Annotated[
+        ResourceObject[AttributesT],
+        Doc("The resource object."),
+    ]
+    meta: Annotated[
+        Optional[MetaType],
+        Doc("Non-standard meta-information."),
+    ] = None
+    jsonapi: Annotated[
+        Optional[JSONAPIObject],
+        Doc("Information about the JSON:API implementation."),
+    ] = JSONAPIObject()
+    links: Annotated[
+        Optional[Links],
+        Doc("Links related to the primary data."),
+    ] = None
+
+
+class PatchMultiDocument(
+    ForbidExtraFieldsModel,
+    DocumentSerializerMixin,
+    Generic[AttributesT],
+):
+    """
+    Represents a list of resource objects for PATCH requests (resource update).
+    """
+
+    data: Annotated[
+        List[ResourceObject[AttributesT]],
+        Doc("The list of resource objects."),
+    ]
+    meta: Annotated[
+        Optional[MetaType],
+        Doc("Non-standard meta-information."),
+    ] = None
+    jsonapi: Annotated[
+        Optional[JSONAPIObject],
+        Doc("Information about the JSON:API implementation."),
+    ] = JSONAPIObject()
+    links: Annotated[
+        Optional[Links],
+        Doc("Links related to the primary data."),
+    ] = None
+
+
+class PostMultiDocument(
+    ForbidExtraFieldsModel,
+    DocumentSerializerMixin,
+    Generic[AttributesT],
+):
+    """
+    Represents a list of resource objects for POST requests (resource creation).
+    """
+
+    data: Annotated[
+        List[ResourceObject[AttributesT]],
+        Doc("The list of resource objects."),
+    ]
+    meta: Annotated[
+        Optional[MetaType],
+        Doc("Non-standard meta-information."),
+    ] = None
+    jsonapi: Annotated[
+        Optional[JSONAPIObject],
+        Doc("Information about the JSON:API implementation."),
+    ] = JSONAPIObject()
+    links: Annotated[
+        Optional[Links],
+        Doc("Links related to the primary data."),
+    ] = None

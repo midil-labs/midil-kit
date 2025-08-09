@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v3.2.0 (2025-08-07)
+
+### Features
+
+- Added `MidilAPI`, a FastAPI-based wrapper that helps ensure your APIs follow Midil's design standards.
+
+## Bug Fixes
+
+- Resolved serialization errors in JSONAPI:Spec models
+
+## Breaking Changes
+
+- Renamed JSONAPI:Spec models to enforce semantic meaning
+- Renamed `extensions` folder to midilapi after adapting FastAPI class partially for compliance
+
+
 ## v3.1.0 (2025-08-07)
 
 ### Features

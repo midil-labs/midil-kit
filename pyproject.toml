@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "midil-kit"
-version = "3.1.0"
+version = "3.2.0"
 description = "A Python SDK for backend systems development @midil.io"
 authors = ["Engr. Michael Kofi Armah <michael.armah@midil.io>"]
 readme = "README.md"
@@ -20,7 +20,7 @@ packages = [{ include = "midil" }]
 midil = "midil:cli"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.13"
 pydantic = "^2.0.0"
 starlette = "^0.47.2"
 httpx = "^0.28.1"
@@ -29,35 +29,18 @@ pyjwt = "^2.10.1"
 python-dateutil = "^2.8.0"
 click = "^8.1.7"
 uvicorn = "^0.29.0"
+fastapi = "^0.116.1"
+aiobotocore = "^2.10.0"
+aioboto3 = "^15.0.0"
+redis = "^5.2.1"
 
-# Optional dependencies moved to extras
-fastapi = { version = "^0.116.1", optional = true }
-aioboto3 = { version = "^15.0.0", optional = true }
 
-# You can add more here if needed
-python-jose = { version = "^3.3.0", optional = true }
-redis = { version = "^6.2.0", optional = true }
 types-aioboto3 = "^15.0.0"
 rich = "^14.1.0"
 tomli = "^2.2.1"
 pydantic-settings = "^2.10.1"
 cookiecutter = "^2.6.0"
 
-[tool.poetry.extras]
-# Web framework extensions
-fastapi = ["fastapi"]
-
-# Authentication providers (JWT, Cognito)
-auth = ["python-jose"]
-
-# AWS event services (SQS, EventBridge, Scheduler)
-event = ["aioboto3"]
-
-# AWS infrastructure (combines auth + event)
-aws = ["aioboto3", "python-jose"]
-
-# All optional dependencies
-all = ["fastapi", "aioboto3", "python-jose", "redis"]
 
 [tool.poetry.group.dev.dependencies]
 pytest-cov = "^4.0.0"
@@ -100,7 +83,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.mypy]
-python_version = "3.12"  # Also update this to match your actual Python version
+python_version = "3.13"  # Also update this to match your actual Python version
 mypy_path = ["."]  # Change from ["./midil"] to ["."]
 explicit_package_bases = true
 namespace_packages = true

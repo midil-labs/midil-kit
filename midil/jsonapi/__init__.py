@@ -1,8 +1,8 @@
 from midil.jsonapi.document import (
     ErrorSource,
-    JSONAPIDocument,
+    Document,
     ErrorObject,
-    JSONAPIHeader,
+    Header,
     Links,
     ResourceIdentifierObject,
     RelationshipObject,
@@ -10,8 +10,9 @@ from midil.jsonapi.document import (
     LinkObject,
     MetaType,
     ResourceObject,
-    PostResource,
-    PatchResource,
+    PostDocument,
+    PatchDocument,
+    ErrorDocument,
 )
 from midil.jsonapi.query import (
     QueryParams,
@@ -24,8 +25,8 @@ from midil.jsonapi.query import (
 
 
 __all__ = [
-    "JSONAPIHeader",
-    "JSONAPIDocument",
+    "Header",
+    "Document",
     "ErrorObject",
     "ErrorSource",
     "MetaType",
@@ -35,12 +36,13 @@ __all__ = [
     "RelationshipObject",
     "JSONAPIObject",
     "LinkObject",
-    "PostResource",
-    "PatchResource",
+    "PostDocument",
+    "PatchDocument",
     "QueryParams",
     "Sort",
     "Include",
     "PaginationParams",
     "SortDirection",
     "SortField",
+    "ErrorDocument",
 ]

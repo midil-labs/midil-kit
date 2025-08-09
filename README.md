@@ -149,7 +149,7 @@ response = await http_client.send_request(
 ### JSON:API Documents
 
 ```python
-from midil.jsonapi import JSONAPIDocument, ResourceObject, ErrorObject
+from midil.jsonapi import Document, ResourceObject, ErrorObject
 
 # Create a resource document
 resource = ResourceObject(
@@ -158,7 +158,7 @@ resource = ResourceObject(
     attributes={"title": "JSON:API with Midil Kit", "content": "..."}
 )
 
-document = JSONAPIDocument(data=resource)
+document = Document(data=resource)
 
 # Create error documents
 error = ErrorObject(
@@ -167,15 +167,15 @@ error = ErrorObject(
     detail="Title is required"
 )
 
-error_document = JSONAPIDocument(errors=[error])
+error_document = Document(errors=[error])
 ```
 
 ### FastAPI Integration
 
 ```python
 from fastapi import FastAPI, Depends
-from midil.extensions.fastapi.middleware.auth_middleware import CognitoAuthMiddleware
-from midil.extensions.fastapi.dependencies.jsonapi import parse_sort, parse_include
+from midil.midilapi.fastapi.middleware.auth_middleware import CognitoAuthMiddleware
+from midil.midilapi.fastapi.dependencies.jsonapi import parse_sort, parse_include
 
 app = FastAPI()
 
@@ -244,7 +244,7 @@ async def get_current_user(auth=Depends(get_auth)):
 ### JSON:API Module (`midil.jsonapi`)
 
 #### Document Models
-- `JSONAPIDocument`: Main document container
+- `Document`: Main document container
 - `ResourceObject`: Resource representation with attributes and relationships
 - `ErrorObject`: Error representation
 - `QueryParams`: Query parameter parsing and validation
@@ -252,7 +252,7 @@ async def get_current_user(auth=Depends(get_auth)):
 #### Utilities
 - `Sort`, `Include`, `PaginationParams`: Query parameter models
 
-### Extensions Module (`midil.extensions`)
+### Extensions Module (`midil.midilapi`)
 
 #### FastAPI Integration
 - `BaseAuthMiddleware`: Base authentication middleware
