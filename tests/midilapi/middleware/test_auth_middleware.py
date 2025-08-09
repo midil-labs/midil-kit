@@ -6,7 +6,7 @@ from starlette.applications import Starlette
 from starlette.exceptions import HTTPException
 from typing import Callable, Awaitable
 
-from midil.extensions.fastapi.middleware.auth_middleware import (
+from midil.midilapi.middleware.auth_middleware import (
     AuthContext,
     CognitoAuthMiddleware,
 )
@@ -89,7 +89,7 @@ class TestCognitoAuthMiddleware:
             "COGNITO__CLIENT_ID": "test-client-id",
         },
     )
-    @patch("midil.extensions.fastapi.middleware.auth_middleware.CognitoJWTAuthorizer")
+    @patch("midil.midilapi.middleware.auth_middleware.CognitoJWTAuthorizer")
     async def test_dispatch_success(
         self,
         mock_authorizer_class,
@@ -128,7 +128,7 @@ class TestCognitoAuthMiddleware:
         },
     )
     @pytest.mark.anyio
-    @patch("midil.extensions.fastapi.middleware.auth_middleware.CognitoJWTAuthorizer")
+    @patch("midil.midilapi.middleware.auth_middleware.CognitoJWTAuthorizer")
     async def test_dispatch_authorization_error(
         self, mock_authorizer_class, auth_middleware, mock_request, mock_call_next
     ) -> None:
@@ -149,7 +149,7 @@ class TestCognitoAuthMiddleware:
         "os.environ",
         {"COGNITO__USER_POOL_ID": "", "COGNITO__REGION": "", "COGNITO__CLIENT_ID": ""},
     )
-    @patch("midil.extensions.fastapi.middleware.auth_middleware.CognitoJWTAuthorizer")
+    @patch("midil.midilapi.middleware.auth_middleware.CognitoJWTAuthorizer")
     async def test_dispatch_empty_environment(
         self,
         mock_authorizer_class,

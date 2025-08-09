@@ -61,7 +61,7 @@ class BaseAuthMiddleware(BaseHTTPMiddleware):
     from fastapi import FastAPI, Depends
     from midil.auth.interfaces.authorizer import AuthZProvider
     from midil.auth.interfaces.models import AuthZTokenClaims
-    from midil.extensions.fastapi.middleware.auth_middleware import (
+    from midil.midilapi.fastapi.middleware.auth_middleware import (
         AuthContext,
         BaseAuthMiddleware,
     )
@@ -160,7 +160,7 @@ class CognitoAuthMiddleware(BaseAuthMiddleware):
     from midil.auth.cognito.jwt_authorizer import CognitoJWTAuthorizer
     from midil.auth.interfaces.authorizer import AuthZProvider
     from midil.auth.interfaces.models import AuthZTokenClaims
-    from midil.extensions.fastapi.middleware.auth_middleware import (
+    from midil.midilapi.fastapi.middleware.auth_middleware import (
         CognitoAuthMiddleware,
     )
     app = FastAPI()
@@ -178,7 +178,7 @@ class CognitoAuthMiddleware(BaseAuthMiddleware):
     """
 
     async def authorizer(self, request: Request) -> AuthZProvider:
-        cognito_settings = CognitoSettings()
+        cognito_settings = CognitoSettings()  # type: ignore
         return CognitoJWTAuthorizer(
             user_pool_id=cognito_settings.user_pool_id,
             region=cognito_settings.region,
