@@ -178,7 +178,7 @@ class CognitoAuthMiddleware(BaseAuthMiddleware):
     """
 
     async def authorizer(self, request: Request) -> AuthZProvider:
-        cognito_settings = CognitoSettings()  # type: ignore
+        cognito_settings = CognitoSettings()
         return CognitoJWTAuthorizer(
             user_pool_id=cognito_settings.user_pool_id,
             region=cognito_settings.region,

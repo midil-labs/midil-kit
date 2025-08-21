@@ -1,6 +1,7 @@
 """
 Tests for midil.auth.interfaces.authenticator
 """
+
 import pytest
 from abc import ABC
 from unittest.mock import AsyncMock

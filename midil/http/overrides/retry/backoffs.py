@@ -1,8 +1,8 @@
-import random
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Mapping
 from dateutil.parser import isoparse
+from midil.utils.backoff import BackoffStrategy, ExponentialBackoffWithJitter
 
 
 @dataclass(frozen=True)
@@ -14,9 +14,19 @@ class BackoffConfig:
     backoff_header: str = "Retry-After"
 
 
-class ExponentialBackoffWithJitter:
-    def __init__(self, config: BackoffConfig | None = None):
+class ExponentialBackoffAdaptor(BackoffStrategy):
+    def __init__(
+        self,
+        strategy: BackoffStrategy | None = None,
+        config: BackoffConfig | None = None,
+    ):
         self.config = config or BackoffConfig()
+        # Use provided strategy or default to ExponentialBackoffWithJitter
+        self.strategy = strategy or ExponentialBackoffWithJitter(
+            base=self.config.base_delay,
+            cap=self.config.max_delay,
+            jitter=self.config.jitter_ratio,
+        )
 
     def calculate_sleep(self, attempt: int, headers: Mapping[str, str]) -> float:
         """
@@ -39,11 +49,10 @@ class ExponentialBackoffWithJitter:
                 diff = (parsed_date - datetime.now().astimezone()).total_seconds()
                 return min(max(diff, 0), cfg.max_delay)
             except (ValueError, OverflowError):
-                pass  # fall through to exponential backoff
+                pass  # fall back to exponential backoff
 
-        base = cfg.base_delay * (2 ** (attempt - 1))
+        # Fallback to backoff strategy
+        return self.strategy.next_delay(attempt)
 
-        jitter_amount = base * cfg.jitter_ratio
-        jitter = random.uniform(-jitter_amount, jitter_amount)
-
-        return min(base + jitter, cfg.max_delay)
+    def next_delay(self, attempt: int) -> float:
+        raise NotImplementedError("obtain next_delay from calculate_sleep intead")

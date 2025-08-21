@@ -10,7 +10,7 @@ from midil.http.overrides.retry.protocols import (
     BackoffStrategy,
 )
 from midil.http.overrides.retry.strategies import DefaultRetryStrategy
-from midil.http.overrides.retry.backoffs import ExponentialBackoffWithJitter
+from midil.http.overrides.retry.backoffs import ExponentialBackoffAdaptor
 
 
 class RetryTransport(httpx.AsyncBaseTransport, httpx.BaseTransport):
@@ -19,7 +19,7 @@ class RetryTransport(httpx.AsyncBaseTransport, httpx.BaseTransport):
         wrapped: Union[httpx.BaseTransport, httpx.AsyncBaseTransport],
         max_attempts: int = 5,
         retry_strategy: RetryStrategy = DefaultRetryStrategy(),
-        backoff_strategy: BackoffStrategy = ExponentialBackoffWithJitter(),
+        backoff_strategy: BackoffStrategy = ExponentialBackoffAdaptor(),
         observer: Optional[RetryObserver] = None,
         logger: Optional[Any] = None,
     ) -> None:
