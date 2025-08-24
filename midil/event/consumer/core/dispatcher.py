@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional, Set
 from typing import get_origin
 import inspect
 
-from midil.event.consumers.core.types import (
+from midil.event.consumer.core.types import (
     FailurePolicy,
     HandlerContext,
     HandlerName,
@@ -16,9 +16,9 @@ from midil.event.consumers.core.types import (
     Event,
     HandlerCallable,
 )
-from midil.event.consumers.core.router import HandlerSpec, EventRouter
-from midil.event.consumers.core.state_store import StateStore
-from midil.event.consumers.core.types import Depends
+from midil.event.consumer.core.router import HandlerSpec, EventRouter
+from midil.event.consumer.core.state_store import StateStore
+from midil.event.consumer.core.types import Depends
 from loguru import logger
 
 
@@ -49,7 +49,9 @@ class EventDispatcher:
         if not handlers:
             logger.warning(f"No handlers registered for event type '{event_type}'")
             return True
-
+        logger.debug(
+            f"Executing handlers {list(handlers.keys())} for event type '{event_type}'"
+        )
         message_state = MessageState(message_id=message_id)
         for name in handlers.keys():
             message_state.handler_states[name] = HandlerState()
@@ -61,7 +63,11 @@ class EventDispatcher:
             )
             message_state.overall_status = "completed" if success else "failed"
             return success
-        except Exception:
+        except Exception as e:
+            logger.error(
+                f"An unexpected error occurred during dispatch of event '{event_type}': {type(e).__name__}: {e}",
+                exc_info=True,
+            )
             message_state.overall_status = "error"
             return False
 
@@ -84,10 +90,18 @@ class EventDispatcher:
         semaphore = asyncio.Semaphore(self.concurrency_limit)
         running_tasks: Set[asyncio.Task[None]] = set()
 
+        logger.debug(
+            f"Starting handler graph execution. Initial ready_queue: {list(ready_queue)}"
+        )
+
         while ready_queue or running_tasks:
             while ready_queue and len(running_tasks) < self.concurrency_limit:
                 handler_name = ready_queue.popleft()
                 if handler_name not in in_progress:
+                    logger.debug(
+                        f"Scheduling handler '{handler_name}' for execution. "
+                        f"In progress: {in_progress}, Completed: {completed}, Failed: {failed}"
+                    )
                     in_progress.add(handler_name)
                     task = asyncio.create_task(
                         self._run_and_handle_completion(
@@ -106,15 +120,27 @@ class EventDispatcher:
                         )
                     )
                     running_tasks.add(task)
+                else:
+                    logger.debug(
+                        f"Handler '{handler_name}' is already in progress, skipping scheduling."
+                    )
 
             if running_tasks:
+                logger.debug(
+                    f"Waiting for {len(running_tasks)} running task(s) to complete. "
+                    f"Current ready_queue: {list(ready_queue)}"
+                )
                 done, running_tasks = await asyncio.wait(
                     running_tasks, return_when=asyncio.FIRST_COMPLETED
                 )
                 for task in done:
                     await task
 
-        return self._evaluate_final_success(handlers, completed, failed)
+        response = self._evaluate_final_success(handlers, completed, failed)
+        logger.debug(
+            f"Handler graph execution finished. Completed: {completed}, Failed: {failed}"
+        )
+        return response
 
     async def _run_and_handle_completion(
         self,
@@ -163,7 +189,11 @@ class EventDispatcher:
                     in_progress,
                     message_state,
                 )
-            except Exception as e:  # noqa: BLE001 - propagate to state store
+            except Exception as e:
+                logger.error(
+                    f"Handler '{handler_name}' encountered an error ({type(e).__name__}): {e}",
+                    exc_info=True,
+                )
                 message_state.handler_states[handler_name].status = HandlerStatus.FAILED
                 message_state.handler_states[handler_name].last_error = e
                 await self.state_store.mark_handler_failed(
@@ -173,10 +203,16 @@ class EventDispatcher:
                 in_progress.discard(handler_name)
 
                 if spec.failure_policy == FailurePolicy.ABORT:
+                    logger.info(
+                        f"Aborting dependent handlers due to failure of '{handler_name}'"
+                    )
                     self._mark_dependents_skipped(
                         handler_name, dependents_map, message_state
                     )
                 else:
+                    logger.info(
+                        f"Continuing with dependent handlers despite failure of '{handler_name}'"
+                    )
                     self._schedule_ready_dependents(
                         handler_name,
                         dependents_map,
@@ -214,37 +250,35 @@ class EventDispatcher:
                     metadata=spec.metadata,
                 )
 
-                # resolve any Depends
                 dep_kwargs = await self._resolve_dependencies(spec.handler, context)
-
-                try:
-                    # Prefer asyncio.timeout if available (3.11+)
-                    async with asyncio.timeout(spec.timeout_seconds):
-                        result = await spec.handler(context, **dep_kwargs)
-                except AttributeError:
-                    result = await asyncio.wait_for(
-                        spec.handler(context, **dep_kwargs),
-                        timeout=spec.timeout_seconds,
-                    )
+                async with asyncio.timeout(spec.timeout_seconds):
+                    result = await spec.handler(context, **dep_kwargs)
                 return result
 
             except Exception as e:
                 last_exception = e
-                logger.warning(f"Handler '{spec.name}' attempt {attempt} failed: {e}")
+                logger.error(
+                    f"Handler '{spec.name}' attempt {attempt} failed: {type(e).__name__}: {e}",
+                    exc_info=True,  # Include full stack trace
+                )
 
                 if spec.retry_policy.should_retry(attempt, e):
-                    if queue and hasattr(queue, "change_message_visibility"):
+                    if queue:
                         try:
                             await queue.change_message_visibility(
                                 receipt_handle, visibility_seconds=30
                             )
                         except Exception as visibility_error:
-                            logger.warning(
-                                f"Failed to update message visibility: {visibility_error}"
+                            logger.error(
+                                f"Failed to update message visibility for handler '{spec.name}': {visibility_error}",
+                                exc_info=True,
                             )
                     delay = spec.backoff.next_delay(attempt)
                     await asyncio.sleep(delay)
                 else:
+                    logger.error(
+                        f"Handler '{spec.name}' will not retry - error is not retryable"
+                    )
                     break
 
         raise last_exception or Exception("Handler failed without specific error")

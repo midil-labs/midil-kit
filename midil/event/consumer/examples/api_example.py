@@ -5,15 +5,15 @@ from typing import Dict, Any
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-# Import from the main package using the new organization
-from midil.event.consumers import (
-    create_consumer_system,
+
+from midil.event.consumer import (
+    create_consumer,
     create_sqs_queue,
     ConsumerConfig,
     DispatcherConfig,
     PollingConfig,
 )
-from midil.event.consumers.core.types import HandlerContext
+from midil.event.consumer.core.types import Event, HandlerContext
 
 # --- Configuration ---
 config = ConsumerConfig(
@@ -36,7 +36,7 @@ SQS_QUEUE_URL = "https://sqs.us-east-1.amazonaws.com/616782207790/booking-events
 
 # Create the complete consumer system
 queue = create_sqs_queue(queue_url=SQS_QUEUE_URL, region_name=SQS_REGION)
-router, dispatcher, polling_strategy = create_consumer_system(queue, config)
+router, dispatcher, polling_strategy = create_consumer(queue, config)
 
 
 # --- Register Handlers ---
@@ -81,8 +81,7 @@ app = FastAPI(title="Event Processing Example", lifespan=lifespan)
 
 class EventPayload(BaseModel):
     type: str
-    user_id: str
-    amount: float
+    data: Dict[str, Any]
 
 
 @app.post("/events")
@@ -90,11 +89,11 @@ async def handle_event(payload: EventPayload):
     """
     Receive an event and trigger processing.
     """
-    message_id = f"msg-{payload.user_id}"
-    receipt_handle = f"receipt-{payload.user_id}"
+    message_id = f"msg-{payload.data.get('user_id')}"
+    receipt_handle = f"receipt-{payload.data.get('user_id')}"
 
     success = await dispatcher.dispatch(
-        message_id, payload.model_dump(), receipt_handle
+        message_id, Event(type=payload.type, data=payload.data), receipt_handle
     )
     return {"success": success}
 
@@ -140,7 +139,7 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "midil.event.consumers.examples.api_example:app",
+        "midil.event.consumer.examples.api_example:app",
         host="0.0.0.0",
         port=8000,
         reload=True,

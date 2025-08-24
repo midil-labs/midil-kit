@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Awaitable, Callable, Dict, Optional, Protocol
+from enum import StrEnum
+from typing import Any, Awaitable, Callable, Dict, Optional, Protocol, TypedDict
 
 
-# Basic aliases
-Event = Dict[str, Any]
+Event = TypedDict("Event", {"type": str, "data": Any})
 HandlerName = str
 
 
@@ -15,7 +14,7 @@ class Depends:
         self.dependency = dependency
 
 
-class FailurePolicy(Enum):
+class FailurePolicy(StrEnum):
     """Handler failure policies"""
 
     ABORT = "abort"
@@ -23,7 +22,7 @@ class FailurePolicy(Enum):
     COMPENSATE = "compensate"
 
 
-class HandlerStatus(Enum):
+class HandlerStatus(StrEnum):
     """Runtime handler execution status"""
 
     PENDING = "pending"
@@ -71,6 +70,15 @@ class MessageState:
     overall_status: str = "processing"
 
 
+class LiveEventTimestamp(StrEnum):
+    """Enum for timestamp keys"""
+
+    AddedToQueue = "Added To Queue"
+    StartedProcessing = "Started Processing"
+    FinishedProcessingSuccessfully = "Finished Processing Successfully"
+    FinishedProcessingWithError = "Finished Processing With Error"
+
+
 class QueueLike(Protocol):
     """Structural protocol for queues that support visibility changes."""
 
@@ -78,16 +86,3 @@ class QueueLike(Protocol):
         self, receipt_handle: str, visibility_seconds: int
     ) -> None:
         ...
-
-
-__all__ = [
-    "FailurePolicy",
-    "HandlerStatus",
-    "Event",
-    "HandlerName",
-    "HandlerCallable",
-    "HandlerContext",
-    "HandlerState",
-    "MessageState",
-    "QueueLike",
-]

@@ -3,9 +3,9 @@
 import asyncio
 from typing import Dict, Any
 
-from midil.event.consumers import (
+from midil.event.consumer import (
     HandlerContext,
-    create_consumer_system,
+    create_consumer,
     create_sqs_queue,
     ConsumerConfig,
     PollingConfig,
@@ -31,7 +31,7 @@ async def main():
     )
 
     # Create the complete consumer system
-    router, dispatcher, polling_strategy = create_consumer_system(queue, config)
+    router, dispatcher, polling_strategy = create_consumer(queue, config)
 
     # Register handlers
     @router.on("order:created", name="validate_order")

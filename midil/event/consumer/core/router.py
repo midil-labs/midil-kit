@@ -2,17 +2,17 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Awaitable, Callable, Dict, List, Optional, Any
 
-from midil.event.consumers.core.exceptions import DependencyRegistrationError
-from midil.event.consumers.core.graph import GraphValidator
-from midil.utils.retry import ExponentialRetryPolicy, RetryPolicy
+from midil.event.consumer.core.exceptions import DependencyRegistrationError
+from midil.event.consumer.core.graph import GraphValidator
+from midil.utils.retry import NoRetryPolicy, RetryPolicy
 from midil.utils.backoff import BackoffStrategy, ExponentialBackoff
-from midil.event.consumers.core.types import (
+from midil.event.consumer.core.types import (
     FailurePolicy,
     HandlerCallable,
     HandlerContext,
     HandlerName,
 )
-from midil.event.consumers.core.exceptions import DependencyGraphError
+from midil.event.consumer.core.exceptions import DependencyGraphError
 from loguru import logger
 import inspect
 
@@ -33,7 +33,7 @@ class HandlerSpec:
     handler: HandlerCallable
     depends_on: List[HandlerName] = field(default_factory=list)
     timeout_seconds: int = 30
-    retry_policy: RetryPolicy = field(default_factory=lambda: ExponentialRetryPolicy())
+    retry_policy: RetryPolicy = field(default_factory=lambda: NoRetryPolicy())
     backoff: BackoffStrategy = field(default_factory=lambda: ExponentialBackoff())
     failure_policy: FailurePolicy = FailurePolicy.ABORT
     metadata: Dict[str, object] = field(default_factory=dict)
@@ -87,13 +87,12 @@ class EventRouter:
             name = self._generate_handler_name(handler)
 
         # Use defaults if not provided
-        retry_policy = retry_policy or ExponentialRetryPolicy()
+        retry_policy = retry_policy or NoRetryPolicy()
         backoff = backoff or ExponentialBackoff()
         failure_policy = failure_policy or FailurePolicy.ABORT
         depends_on = depends_on or []
         metadata = metadata or {}
 
-        # Create handler specification
         spec = HandlerSpec(
             name=name,
             handler=handler,
@@ -111,10 +110,8 @@ class EventRouter:
                 f"Handler name '{name}' already routed for event type '{event_type}'"
             )
 
-        # Route the handler
         self._handlers[event_type][name] = spec
 
-        # Validate the updated graph
         try:
             GraphValidator.validate(self._handlers[event_type])
         except DependencyGraphError:
@@ -131,7 +128,7 @@ class EventRouter:
         *,
         name: Optional[str] = None,
         depends_on: Optional[List[str]] = None,
-        timeout_seconds: int = 30,
+        timeout_seconds: int = 5,
         retry_policy: Optional[RetryPolicy] = None,
         backoff: Optional[BackoffStrategy] = None,
         failure_policy: Optional[FailurePolicy] = None,
@@ -169,6 +166,3 @@ class EventRouter:
             # Fallback to counter-based naming
             self._handler_counter += 1
             return f"handler_{self._handler_counter}"
-
-
-__all__ = ["HandlerSpec", "EventRouter"]

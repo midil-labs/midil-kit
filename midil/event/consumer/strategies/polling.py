@@ -2,14 +2,12 @@ from typing import Optional, Dict, Any
 import asyncio
 import json
 from loguru import logger
-from midil.event.consumers.core.dispatcher import EventDispatcher
-from midil.utils.retry import ExponentialRetryPolicy, RetryPolicy
-from midil.utils.backoff import ExponentialBackoff, BackoffStrategy
-from midil.event.consumers.core.state_store import StateStore, InMemoryStateStore
-from midil.event.consumers.core.types import Event
-from midil.event.consumers.queues.base import EventQueue
-from midil.event.consumers.core.router import EventRouter
-from midil.event.consumers.strategies.base import BaseEventStrategy
+from midil.event.consumer.core.dispatcher import EventDispatcher
+from midil.event.consumer.core.state_store import StateStore, InMemoryStateStore
+from midil.event.consumer.core.types import Event
+from midil.event.consumer.queues.base import EventQueue
+from midil.event.consumer.core.router import EventRouter
+from midil.event.consumer.strategies.base import BaseEventStrategy
 
 
 class PollingEventStrategy(BaseEventStrategy):
@@ -22,8 +20,6 @@ class PollingEventStrategy(BaseEventStrategy):
         self,
         queue: EventQueue,
         router: EventRouter,
-        retry_policy: Optional[RetryPolicy] = None,
-        backoff_strategy: Optional[BackoffStrategy] = None,
         state_store: Optional[StateStore] = None,
         *,
         max_messages: int = 10,
@@ -34,8 +30,6 @@ class PollingEventStrategy(BaseEventStrategy):
     ) -> None:
         self.queue = queue
         self.registry = router
-        self.retry_policy = retry_policy or ExponentialRetryPolicy()
-        self.backoff_strategy = backoff_strategy or ExponentialBackoff()
         self.max_messages = max_messages
         self.wait_time = wait_time
         self.poll_interval = poll_interval

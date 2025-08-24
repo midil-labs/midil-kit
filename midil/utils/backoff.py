@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import abc
 import random
 
@@ -8,7 +6,7 @@ class BackoffStrategy(abc.ABC):
     """Abstract base for backoff strategies"""
 
     @abc.abstractmethod
-    def next_delay(self, attempt: int) -> float:  # pragma: no cover - interface
+    def next_delay(self, attempt: int) -> float:
         raise NotImplementedError
 
 
@@ -35,10 +33,3 @@ class ExponentialBackoffWithJitter(BackoffStrategy):
         delay = min(self.cap, self.base * (2 ** (attempt - 1)))
         jitter_amt = (random.random() * 2 - 1) * self.jitter * delay
         return max(0.0, delay + jitter_amt)
-
-
-__all__ = [
-    "BackoffStrategy",
-    "ExponentialBackoff",
-    "ExponentialBackoffWithJitter",
-]

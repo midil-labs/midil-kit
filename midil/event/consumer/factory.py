@@ -2,12 +2,16 @@
 
 from typing import Optional
 
-from .config import ConsumerConfig, DEFAULT_CONFIG
-from .core.router import EventRouter
-from .core.dispatcher import EventDispatcher
-from .core.state_store import StateStore, InMemoryStateStore, RedisStateStore
-from .queues import EventQueue, SQSEventQueue
-from .strategies.polling import PollingEventStrategy
+from midil.event.consumer.config import ConsumerConfig, DEFAULT_CONFIG
+from midil.event.consumer.core.router import EventRouter
+from midil.event.consumer.core.dispatcher import EventDispatcher
+from midil.event.consumer.core.state_store import (
+    StateStore,
+    InMemoryStateStore,
+    RedisStateStore,
+)
+from midil.event.consumer.queues import EventQueue, SQSEventQueue
+from midil.event.consumer.strategies.polling import PollingEventStrategy
 
 
 def create_router() -> EventRouter:
@@ -118,7 +122,7 @@ def create_polling_strategy(
     )
 
 
-def create_consumer_system(
+def create_consumer(
     queue: EventQueue,
     config: Optional[ConsumerConfig] = None,
 ) -> tuple[EventRouter, EventDispatcher, PollingEventStrategy]:

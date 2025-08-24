@@ -4,7 +4,7 @@ import aioboto3
 from typing import Any, Dict, List, Optional, Sequence, cast, Protocol
 import asyncio
 
-from midil.event.consumers.queues.base import EventQueue
+from midil.event.consumer.queues.base import EventQueue
 
 
 class SQSClient(Protocol):
@@ -50,7 +50,7 @@ class SQSEventQueue(EventQueue):
         visibility_timeout: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
         await self._ensure_client()
-        assert self._client is not None
+        assert self._client is not None, "Client not initialized"
         params: Dict[str, Any] = {
             "QueueUrl": self.queue_url,
             "MaxNumberOfMessages": max_messages,
@@ -80,7 +80,7 @@ class SQSEventQueue(EventQueue):
         self, receipt_handle: str, visibility_timeout: int
     ) -> None:
         await self._ensure_client()
-        assert self._client is not None
+        assert self._client is not None, "Client not initialized"
         await self._client.change_message_visibility(
             QueueUrl=self.queue_url,
             ReceiptHandle=receipt_handle,

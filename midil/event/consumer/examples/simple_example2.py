@@ -1,7 +1,7 @@
-from midil.event.consumers.core.router import EventRouter
-from midil.event.consumers.core.types import HandlerContext
-from midil.event.consumers.core.state_store import InMemoryStateStore
-from midil.event.consumers.core.dispatcher import EventDispatcher
+from midil.event.consumer.core.router import EventRouter
+from midil.event.consumer.core.types import Event, HandlerContext
+from midil.event.consumer.core.state_store import InMemoryStateStore
+from midil.event.consumer.core.dispatcher import EventDispatcher
 
 import asyncio
 from typing import Dict, Any
@@ -55,7 +55,9 @@ async def test_example():
     registry, dispatcher = create_example_system()
 
     # Test event
-    event = {"type": "checkout:complete", "user_id": "user123", "amount": 99.99}
+    event = Event(
+        type="checkout:complete", data={"user_id": "user123", "amount": 99.99}
+    )
 
     # Process the event
     success = await dispatcher.dispatch("msg123", event, "receipt123")

@@ -1,4 +1,7 @@
-class BaseEventStrategy:
+import abc
+
+
+class BaseEventStrategy(abc.ABC):
     """
     Base class for event consumption strategies.
 
@@ -6,6 +9,7 @@ class BaseEventStrategy:
     the event consumption process, such as polling or streaming from a queue.
     """
 
+    @abc.abstractmethod
     def start(self) -> None:
         """
         Non-blocking method to start the event consumption strategy.
@@ -16,6 +20,7 @@ class BaseEventStrategy:
         """
         ...
 
+    @abc.abstractmethod
     async def stop(self) -> None:
         """
         Stop the event consumption strategy.

@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from typing import Dict, List, TYPE_CHECKING
 
-from midil.event.consumers.core.exceptions import (
+from midil.event.consumer.core.exceptions import (
     CycleDetectedError,
     DependencyRegistrationError,
 )
-from midil.event.consumers.core.types import HandlerName
+from midil.event.consumer.core.types import HandlerName
 
 if TYPE_CHECKING:
-    from midil.event.consumers.core.router import HandlerSpec
+    from midil.event.consumer.core.router import HandlerSpec
 
 
 class GraphValidator:
@@ -55,6 +55,3 @@ class GraphValidator:
         for name in specs:
             if colors[name] == WHITE:
                 dfs(name, [])
-
-
-__all__ = ["GraphValidator"]

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import abc
 
 
@@ -7,14 +5,22 @@ class RetryPolicy(abc.ABC):
     """Abstract base for retry policies"""
 
     @abc.abstractmethod
-    def max_attempts(self) -> int:  # pragma: no cover - interface
-        raise NotImplementedError
+    def max_attempts(self) -> int:
+        ...
 
     @abc.abstractmethod
-    def should_retry(
-        self, attempt: int, exception: Exception
-    ) -> bool:  # pragma: no cover - interface
-        raise NotImplementedError
+    def should_retry(self, attempt: int, exception: Exception) -> bool:
+        ...
+
+
+class NoRetryPolicy(RetryPolicy):
+    """Policy that never retries - fails immediately on first error"""
+
+    def max_attempts(self) -> int:
+        return 1
+
+    def should_retry(self, attempt: int, exception: Exception) -> bool:
+        return False
 
 
 class ExponentialRetryPolicy(RetryPolicy):
@@ -28,9 +34,3 @@ class ExponentialRetryPolicy(RetryPolicy):
 
     def should_retry(self, attempt: int, exception: Exception) -> bool:
         return attempt < self._max_attempts
-
-
-__all__ = [
-    "RetryPolicy",
-    "ExponentialRetryPolicy",
-]

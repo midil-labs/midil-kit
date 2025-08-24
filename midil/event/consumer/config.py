@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional
-from midil.event.consumers.core.types import FailurePolicy
+from midil.event.consumer.core.types import FailurePolicy
 
 
 @dataclass
