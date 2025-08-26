@@ -9,27 +9,27 @@ class Extra(StrEnum):
 
 
 class ForbidExtraFieldsModel(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra=Extra.FORBID.value)
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        if getattr(cls, "model_config", {}).get("extra") != "forbid":
+        if getattr(cls, "model_config", {}).get("extra") != Extra.FORBID.value:
             raise TypeError(f"{cls.__name__}: 'extra' must be 'forbid'")
 
 
 class AllowExtraFieldsModel(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra=Extra.ALLOW.value)
 
     def __init_subclass__(cls, **kwargs):
         BaseModel.__init_subclass__(**kwargs)
-        if getattr(cls, "model_config", {}).get("extra") != Extra.ALLOW:
+        if getattr(cls, "model_config", {}).get("extra") != Extra.ALLOW.value:
             raise TypeError("extra must be 'allow' in all subclasses")
 
 
 class IgnoreExtraFieldsModel(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(extra=Extra.IGNORE.value)
 
     def __init_subclass__(cls, **kwargs):
         BaseModel.__init_subclass__(**kwargs)
-        if getattr(cls, "model_config", {}).get("extra") != Extra.IGNORE:
+        if getattr(cls, "model_config", {}).get("extra") != Extra.IGNORE.value:
             raise TypeError("extra must be 'ignore' in all subclasses")

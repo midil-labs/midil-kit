@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import asyncio
 from collections import defaultdict, deque
 from typing import Any, Dict, Optional, Set
@@ -173,7 +171,7 @@ class EventDispatcher:
                     handler_name,
                     result,
                     message_state.handler_states[handler_name].attempts,
-                    "succeeded",
+                    HandlerStatus.SUCCEEDED,
                 )
 
                 completed.add(handler_name)
