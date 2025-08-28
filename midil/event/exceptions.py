@@ -84,7 +84,7 @@ class ConsumerStopError(ConsumerError):
     pass
 
 
-class RetryableSubscriberError(ConsumerError):
+class CriticalSubscriberError(Exception):
     """
     Exception raised when a subscriber fails to process a message.
     """

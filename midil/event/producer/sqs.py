@@ -1,22 +1,23 @@
-# from typing import Optional
-# from midil.event.producer.base import EventProducer
-# import aioboto3
+from midil.event.producer.base import EventProducer
+from midil.event.producer.base import EventProducerConfig
+import aioboto3
+from typing import Dict, Any
+import json
 
 
-# class SQSProducer(EventProducer):
-#     def __init__(
-#         self,
-#         queue_url: str,
-#         region_name: Optional[str] = None,
-#         session: Optional[aioboto3.Session] = None,
-#     ):
-#         self.queue_url = queue_url
-#         self._session = session or aioboto3.Session(region_name=region_name)
-#         self._client_cm: Optional[Any] = None
-#         self._client: Optional[SQSClient] = None
-#         self._shutdown = asyncio.Event()
+class SQSProducerConfig(EventProducerConfig):
+    type: str = "sqs"
 
-#     async def _ensure_client(self) -> None:
-#         if self._client is None:
-#             # Maintain the context manager to close it later
-#             self._client_cm = self._session.client("sqs")
+
+class SQSProducer(EventProducer):
+    def __init__(self, config: SQSProducerConfig):
+        self.session = aioboto3.Session()
+        self.config = config
+
+    async def publish(self, payload: Dict[str, Any], **kwargs) -> None:
+        message = json.dumps(payload)
+        async with self.session.client("sqs") as sqs:
+            await sqs.send_message(QueueUrl=self.config.uri, MessageBody=message)
+
+    def close(self) -> None:
+        pass

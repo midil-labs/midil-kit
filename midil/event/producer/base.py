@@ -1,5 +1,11 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict
+from pydantic_settings import BaseSettings
+
+
+class EventProducerConfig(BaseSettings):
+    type: str
+    endpoint: str = "localhost"
 
 
 class EventProducer(ABC):
@@ -11,7 +17,7 @@ class EventProducer(ABC):
     backends such as message queues, pub/sub systems, or other event streaming platforms.
 
     Methods:
-        publish(event_type, payload, **kwargs):
+        publish(payload, **kwargs):
             Asynchronously publish an event of the specified type with the given payload.
             The payload should be a dictionary containing the event data. Implementations
             may use additional keyword arguments for backend-specific options such as
@@ -24,12 +30,11 @@ class EventProducer(ABC):
     """
 
     @abstractmethod
-    async def publish(self, event_type: str, payload: Dict[str, Any], **kwargs) -> None:
+    async def publish(self, payload: Dict[str, Any], **kwargs) -> None:
         """
         Asynchronously publish an event to the event backend.
 
         Args:
-            event_type (str): The type or name of the event to publish.
             payload (Dict[str, Any]): The event data to be sent, as a dictionary.
             **kwargs: Additional backend-specific options (e.g., message attributes,
                 delivery delay, partition key).

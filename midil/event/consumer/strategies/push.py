@@ -1,0 +1,25 @@
+from midil.event.consumer.strategies.base import EventConsumerConfig
+from midil.event.consumer.strategies.base import EventConsumer
+from typing import Any
+
+
+class PushEventConsumerConfig(EventConsumerConfig):
+    ...
+
+
+class PushEventConsumer(EventConsumer):
+    def __init__(self, config: PushEventConsumerConfig):
+        self._config = config
+
+    @property
+    def entrypoint(self) -> Any:
+        """
+        Return the framework-specific entrypoint object.
+        Examples:
+            - FastAPI app
+            - WebSocket server instance
+            - gRPC server
+        """
+        raise NotImplementedError(
+            "Entrypoint not implemented for {self.__class__.__name__}"
+        )
