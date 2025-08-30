@@ -1,16 +1,15 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
 
 class EventProducerConfig(BaseSettings):
-    type: str
-    endpoint: str = "localhost"
+    type: str = Field(..., description="Type of the producer configuration")
 
     model_config = SettingsConfigDict(
         env_prefix="MIDIL__EVENT__PRODUCER__",
         env_nested_delimiter="__",
-        # env_parse_json=True
     )
 
 

@@ -11,9 +11,9 @@ from botocore.exceptions import ClientError
 from typing import Dict, Any, Optional
 import json
 from datetime import datetime
-from urllib.parse import urlparse
 from pydantic import model_validator
 from midil.event.retry import async_exponential_backoff
+from midil.event.utils import get_region_from_queue_url
 
 
 class SQSConsumerConfig(PullEventConsumerConfig):
@@ -40,22 +40,11 @@ class SQSConsumerConfig(PullEventConsumerConfig):
 
     @property
     def region(self) -> str:
-        return self._get_region_from_queue_url(self.queue_url)
+        return get_region_from_queue_url(self.queue_url)
 
     @property
     def dlq_region(self) -> Optional[str]:
-        return self._get_region_from_queue_url(self.dlq_url) if self.dlq_url else None
-
-    def _get_region_from_queue_url(self, queue_url: str) -> str:
-        try:
-            host = urlparse(queue_url).netloc  # e.g. "sqs.us-east-1.amazonaws.com"
-            parts = host.split(".")
-            if len(parts) < 3 or parts[0] != "sqs":
-                raise ValueError("Invalid SQS host format")
-            return parts[1]
-        except Exception as e:
-            logger.error(f"Could not extract region from queue url: {e}")
-            raise ValueError(f"Invalid SQS queue url: {queue_url}") from e
+        return get_region_from_queue_url(self.dlq_url) if self.dlq_url else None
 
     @model_validator(mode="after")
     def validate_config(self):
