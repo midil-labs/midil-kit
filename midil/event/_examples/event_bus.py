@@ -1,21 +1,25 @@
-from midil.event.event_bus import EventBus, EventBusConfig
-from midil.event.consumer.sqs import SQSConsumerConfig
 from typing import Dict, Any
-from midil.event.subscriber.base import FunctionSubscriber
-import uvicorn
-
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
+from fastapi import FastAPI
 
-config = EventBusConfig(
-    consumer=SQSConsumerConfig(
-        type="sqs",
-        endpoint="https://sqs.us-east-1.amazonaws.com/616782207790/booking-events-dev-v1",
-        interval=1.0,
-        dlq_uri=None,
-    ),
+import uvicorn
+
+from midil.event.event_bus import EventBus, EventConfig
+from midil.event.consumer.sqs import SQSConsumerConfig
+from midil.event.subscriber.middlewares import (
+    LoggingMiddleware,
+    GroupMiddleware,
+    RetryMiddleware,
 )
+from midil.event.retry import AsyncExponentialBackoff
+
+
+consumer_config = SQSConsumerConfig()
+
+config = EventConfig(consumer=consumer_config)
+
+print(f"config.model_dump_json(): {config.model_dump_json()}")
 
 bus = EventBus(config)
 
@@ -30,12 +34,19 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
+@bus.subscriber(
+    middlewares=[
+        RetryMiddleware(AsyncExponentialBackoff()),
+        GroupMiddleware([LoggingMiddleware()]),
+    ]
+)
 async def handle_event(event: Dict[str, Any]):
-    print("Function subscriber", event)
+    print("Function subscriber : I got it")
 
 
-func_subscriber = FunctionSubscriber(handle_event)
-bus.subscribe(func_subscriber)
+@bus.subscriber()
+async def handle_event_2(event: Dict[str, Any]):
+    print("Function subscriber 2: I also got it ")
 
 
 if __name__ == "__main__":

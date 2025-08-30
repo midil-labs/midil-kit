@@ -10,7 +10,7 @@ from typing import List
 
 class WebSocketPushConsumerConfig(PushEventConsumerConfig):
     type: str = "websocket"
-    uri: str = "/events/ws"
+    endpoint: str = "/events/ws"
 
 
 class WebSocketPushConsumer(PushEventConsumer):
@@ -36,11 +36,11 @@ class WebSocketPushConsumer(PushEventConsumer):
             self.connections.remove(websocket)
 
     async def start(self) -> None:
-        @self._router.websocket(self.config.uri)
+        @self._router.websocket(self.config.endpoint)
         async def websocket_endpoint(websocket: WebSocket) -> None:
             return await self._handler(websocket)
 
-        logger.info(f"WebSocket consumer ready at {self.config.uri}")
+        logger.info(f"WebSocket consumer ready at {self.config.endpoint}")
 
     async def stop(self) -> None:
         self.connections.clear()

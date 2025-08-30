@@ -6,13 +6,19 @@ from typing import Dict, Any
 from midil.event.subscriber.base import FunctionSubscriber
 
 
-config = SQSConsumerConfig(
-    type="sqs",
-    endpoint="https://sqs.us-east-1.amazonaws.com/616782207790/booking-events-dev-v1",
-    interval=1.0,
-    dlq_uri=None,
-)
+# Create config explicitly (recommended for examples)
+config = SQSConsumerConfig()
+# type="sqs",
+# endpoint="https://sqs.us-east-1.amazonaws.com/616782207790/booking-events-dev-v1",
+# interval=1.0,
+# )
 
+# Alternative: Create config from environment variables
+# Set these environment variables before running:
+# export TYPE=sqs
+# export ENDPOINT=https://sqs.us-east-1.amazonaws.com/616782207790/booking-events-dev-v1
+# Then use: config = SQSConsumerConfig()
+print(config.model_dump_json())
 consumer = SQSConsumer(config)
 
 

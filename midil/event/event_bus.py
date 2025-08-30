@@ -1,5 +1,5 @@
 from typing import Any, Dict, Optional, Literal
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from midil.event.producer.base import EventProducer, EventProducerConfig
 from midil.event.consumer.strategies.base import EventConsumerConfig
@@ -17,13 +17,18 @@ from midil.event.subscriber.base import (
     FunctionSubscriber,
     SubscriberMiddleware,
 )
+from midil.event.exceptions import (
+    ConsumerNotImplementedError,
+    ProducerNotImplementedError,
+    TransportNotImplementedError,
+)
 
 
 SupportedProducers = Literal["redis", "sqs", "webhook"]
 SupportedConsumers = Literal["sqs", "webhook"]
 
 
-class EventBusConfig(BaseSettings):
+class EventConfig(BaseSettings):
     """
     Configuration model for the EventBus.
 
@@ -34,12 +39,26 @@ class EventBusConfig(BaseSettings):
                   SQSConsumerConfig, WebhookPushConsumerConfig, or None.
     """
 
-    producer: EventProducerConfig | SQSProducerConfig | RedisProducerConfig | None = (
-        None
+    consumer: Optional[EventConsumerConfig] = None
+    producer: Optional[EventProducerConfig] = None
+
+    model_config = SettingsConfigDict(
+        env_prefix="MIDIL__EVENT__",
+        env_nested_delimiter="__",
+        extra="forbid",
+        # env_parse_json=True
     )
-    consumer: EventConsumerConfig | SQSConsumerConfig | WebhookPushConsumerConfig | None = (
-        None
-    )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls,
+        init_settings,
+        env_settings,
+        dotenv_settings,
+        file_secret_settings,
+    ):
+        return env_settings, init_settings, dotenv_settings, file_secret_settings
 
 
 class EventBusFactory:
@@ -89,7 +108,7 @@ class EventBusFactory:
         """
         producer_cls = cls.PRODUCER_MAP.get(config.type)
         if not producer_cls:
-            raise ValueError(f"Unsupported producer: {config.type}")
+            raise ProducerNotImplementedError(config.type)
         return producer_cls(config)
 
     @classmethod
@@ -111,7 +130,7 @@ class EventBusFactory:
         """
         consumer_cls = cls.CONSUMER_MAP.get(config.type)
         if not consumer_cls:
-            raise ValueError(f"Unsupported consumer: {config.type}")
+            raise ConsumerNotImplementedError(config.type)
         if config.type == "webhook":
             return consumer_cls(config)
         return consumer_cls(config)
@@ -135,10 +154,10 @@ class EventBusFactory:
         """
         config_map = cls.CONFIG_MAP.get(transport)
         if not isinstance(config_map, dict):
-            raise ValueError(f"Unsupported transport: {transport}")
+            raise TransportNotImplementedError(transport)
         config_cls = config_map.get("producer") or config_map.get("consumer")
         if not config_cls:
-            raise ValueError(f"Unsupported transport: {transport}")
+            raise TransportNotImplementedError(transport)
         return config_cls(**kwargs)
 
 
@@ -161,7 +180,7 @@ class EventBus:
 
     def __init__(
         self,
-        config: EventBusConfig = EventBusConfig(),
+        config: EventConfig = EventConfig(),
     ):
         """
         Initialize the EventBus with the given configuration.

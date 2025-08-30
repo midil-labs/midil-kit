@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Annotated, Union, Optional, Sequence, Mapping
 from midil.jsonapi.config import AllowExtraFieldsModel
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Dict, Any, List, Set
 from datetime import datetime
 from pydantic import Field
@@ -51,8 +51,13 @@ class EventConsumerConfig(BaseSettings):
             pattern=r"^[a-zA-Z0-9_-]+$",
         ),
     ]
-    endpoint: str = Field(
-        default="localhost", description="Endpoint for the event source."
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="allow",
+        env_prefix="MIDIL__EVENT__CONSUMER__",
+        env_nested_delimiter="__",
     )
 
 

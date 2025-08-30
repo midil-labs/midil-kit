@@ -17,7 +17,7 @@ class SQSProducer(EventProducer):
     async def publish(self, payload: Dict[str, Any], **kwargs) -> None:
         message = json.dumps(payload)
         async with self.session.client("sqs") as sqs:
-            await sqs.send_message(QueueUrl=self.config.uri, MessageBody=message)
+            await sqs.send_message(QueueUrl=self.config.endpoint, MessageBody=message)
 
     def close(self) -> None:
         pass

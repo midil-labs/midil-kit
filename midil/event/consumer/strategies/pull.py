@@ -1,6 +1,6 @@
 from midil.event.consumer.strategies.base import EventConsumer
 from midil.event.exceptions import (
-    ConsumerStartError,
+    ConsumerCrashError,
     ConsumerStopError,
 )
 from loguru import logger
@@ -12,8 +12,8 @@ from abc import abstractmethod
 
 
 class PullEventConsumerConfig(EventConsumerConfig):
-    interval: float = Field(
-        default=1.0, description="Interval between polls if no messages"
+    poll_interval: float = Field(
+        default=0.1, description="Interval between polls if no messages", ge=0.0
     )
 
 
@@ -28,36 +28,56 @@ class PullEventConsumer(EventConsumer):
         ...
 
     async def start(self) -> None:
-        try:
-            logger.info(f"Starting consumer {self.__class__.__name__}")
-            self._running = True
-            self._loop_task = asyncio.create_task(self._poll_loop())
-        except Exception as e:
-            logger.error(f"An error occured while attempting to start consumer: {e}")
-            raise ConsumerStartError(
-                f"An error occured while attempting to start consumer: {e}"
+        if self._running:
+            logger.warning(f"Consumer {self.__class__.__name__} already running")
+            return
+
+        logger.info(f"Starting consumer {self.__class__.__name__}")
+        self._running = True
+        self._loop_task = asyncio.create_task(self._poll_loop())
+        self._loop_task.add_done_callback(self._handle_task_exception)
+
+    def _handle_task_exception(self, task: asyncio.Task[Any]) -> None:
+        if task.cancelled():
+            logger.info(f"Consumer {self.__class__.__name__} task was cancelled")
+            return
+        exc = task.exception()
+        if exc:
+            logger.error(
+                f"Consumer {self.__class__.__name__} terminated with crash: {exc}"
             )
+            raise ConsumerCrashError(f"Consumer crashed: {exc}")
 
     async def stop(self) -> None:
+        if not self._running:
+            logger.warning(f"Consumer {self.__class__.__name__} already stopped")
+            return
+
+        logger.info(f"Stopping consumer {self.__class__.__name__}")
+        self._running = False
+
         try:
             await self._close()
         except Exception as e:
-            logger.error(f"An error occured while attempting to close consumer: {e}")
-            raise ConsumerStopError(
-                f"An error occured while attempting to close consumer: {e}"
-            )
+            logger.error(f"Error closing consumer {self.__class__.__name__}: {e}")
+            raise ConsumerStopError(f"Failed to close consumer: {e}")
+
         finally:
             await self._reset_state()
 
     async def _reset_state(self) -> None:
-        self._running = False
         self._subscribers.clear()
         if self._loop_task:
-            self._loop_task.cancel()
-            try:
-                await self._loop_task
-            except asyncio.CancelledError:
-                pass  # Expected when task is cancelled
+            if not self._loop_task.done():
+                self._loop_task.cancel()
+                try:
+                    await self._loop_task
+                except asyncio.CancelledError:
+                    logger.debug(
+                        f"Task cancellation completed for {self.__class__.__name__}"
+                    )
+                except Exception as e:
+                    logger.debug(f"Task already failed with: {e}, skipping re-raise")
             self._loop_task = None
 
     async def _close(self) -> None:

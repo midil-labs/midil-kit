@@ -3,20 +3,25 @@ from midil.event.consumer.strategies.pull import (
     PullEventConsumerConfig,
 )
 import aioboto3
-from typing import Optional
 import asyncio
 from loguru import logger
 from midil.event.consumer.strategies.base import Message
 from pydantic import Field
 from botocore.exceptions import ClientError
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import json
 from datetime import datetime
+from urllib.parse import urlparse
+from pydantic import model_validator
+from midil.event.retry import async_exponential_backoff
 
 
 class SQSConsumerConfig(PullEventConsumerConfig):
     type: str = "sqs"
-    dlq_uri: Optional[str] = Field(None, description="URL of the dead-letter queue")
+    queue_url: str = Field(..., description="URL of the queue")
+    dlq_url: Optional[str] = Field(
+        default=None, description="URL of the dead-letter queue"
+    )
     visibility_timeout: int = Field(
         default=30, description="Visibility timeout in seconds", ge=0
     )
@@ -32,7 +37,41 @@ class SQSConsumerConfig(PullEventConsumerConfig):
     max_concurrent_messages: int = Field(
         default=10, description="Max concurrent messages to process", ge=1
     )
-    max_retries: int = Field(default=3, description="Max retries for a message", ge=0)
+
+    @property
+    def region(self) -> str:
+        return self._get_region_from_queue_url(self.queue_url)
+
+    @property
+    def dlq_region(self) -> Optional[str]:
+        return self._get_region_from_queue_url(self.dlq_url) if self.dlq_url else None
+
+    def _get_region_from_queue_url(self, queue_url: str) -> str:
+        try:
+            host = urlparse(queue_url).netloc  # e.g. "sqs.us-east-1.amazonaws.com"
+            parts = host.split(".")
+            if len(parts) < 3 or parts[0] != "sqs":
+                raise ValueError("Invalid SQS host format")
+            return parts[1]
+        except Exception as e:
+            logger.error(f"Could not extract region from queue url: {e}")
+            raise ValueError(f"Invalid SQS queue url: {queue_url}") from e
+
+    @model_validator(mode="after")
+    def validate_config(self):
+        """
+        max_concurrent_messages should be >= max_number_of_messages.
+        Reason: you don’t want to fetch more messages than you are capable of handling concurrently.
+        Otherwise, you risk unacked messages sitting too long (visibility timeout issues in SQS/RabbitMQ/etc.).
+        """
+        if self.max_number_of_messages > self.max_concurrent_messages:
+            raise ValueError(
+                "max_number_of_messages cannot exceed max_concurrent_messages, reason: you don't want to fetch more messages than you are capable of handling concurrently. Otherwise, you risk unacked messages sitting too long (visibility timeout issues in SQS/RabbitMQ/etc.)."
+            )
+        return self
+
+    def __str__(self):
+        return f"SQSConsumerConfig(queue={self.queue_url}, region={self.region}, dlq={self.dlq_url})"
 
 
 class SQSConsumer(PullEventConsumer):
@@ -40,27 +79,10 @@ class SQSConsumer(PullEventConsumer):
         self,
         config: SQSConsumerConfig,
     ):
+        super().__init__(config)
         self.config = config
-        self.session = aioboto3.Session(
-            region_name=self._get_region_from_queue_url(config.endpoint)
-        )
-        self._semaphore = asyncio.Semaphore(config.max_concurrent_messages)
-
-    def _get_region_from_queue_url(self, queue_url: str) -> str:
-        # Example: "https://sqs.us-east-1.amazonaws.com/1234567890/example-queue"
-        # We want to extract "us-east-1"
-        # Split by "//" then by "." and take the second part
-        try:
-            host = queue_url.split("//", 1)[1].split("/")[
-                0
-            ]  # e.g. "sqs.us-east-1.amazonaws.com"
-            region = host.split(".")[1]  # "us-east-1"
-            return region
-        except Exception as e:
-            logger.error(f"Could not extract region from queue url: {e}")
-            raise ValueError(
-                f"Could not extract region from queue url: {queue_url}"
-            ) from e
+        self.session = aioboto3.Session()
+        self._semaphore = asyncio.Semaphore(int(config.max_concurrent_messages))
 
     async def ack(self, message: Message) -> None:
         """
@@ -72,7 +94,7 @@ class SQSConsumer(PullEventConsumer):
         try:
             async with self.session.client("sqs") as sqs:
                 await sqs.delete_message(
-                    QueueUrl=self.config.endpoint,
+                    QueueUrl=self.config.queue_url,
                     ReceiptHandle=message.ack_handle,
                 )
                 logger.debug(f"Acknowledged message {message.id}")
@@ -97,25 +119,36 @@ class SQSConsumer(PullEventConsumer):
             requeue (bool): Whether to send the message to the DLQ (if configured).
         """
         try:
-            async with self.session.client("sqs") as sqs:
-                if requeue and self.config.dlq_uri:
-                    # move to dead letter queue
-                    await sqs.send_message(
-                        QueueUrl=self.config.dlq_uri,
-                        MessageBody=message.model_dump_json(),
-                        MessageGroupId=message.metadata.get(
-                            "MessageGroupId", "default"
-                        ),
-                        MessageDeduplicationId=message.metadata.get(
-                            "MessageDeduplicationId", str(message.id)
-                        ),
-                    )
+            if requeue and self.config.dlq_url:
+                # move to dead letter queue
+                async with self.session.client(
+                    "sqs", region_name=self.config.dlq_region
+                ) as sqs:
+                    params = {
+                        "QueueUrl": self.config.dlq_url,
+                        "MessageBody": message.model_dump_json(),
+                    }
+                    if self.config.dlq_url.endswith(".fifo"):
+                        params.update(
+                            {
+                                "MessageGroupId": message.metadata.get(
+                                    "MessageGroupId", "default"
+                                ),
+                                "MessageDeduplicationId": message.metadata.get(
+                                    "MessageDeduplicationId", str(message.id)
+                                ),
+                            }
+                        )
+                    await sqs.send_message(**params)
                     await self.ack(message)  # Remove from source queue
                     logger.debug(f"Sent message {message.id} to DLQ")
 
-                else:
+            else:
+                async with self.session.client(
+                    "sqs", region_name=self.config.region
+                ) as sqs:
                     await sqs.change_message_visibility(
-                        QueueUrl=self.config.endpoint,
+                        QueueUrl=self.config.queue_url,
                         ReceiptHandle=message.ack_handle,
                         VisibilityTimeout=0,
                     )
@@ -124,42 +157,46 @@ class SQSConsumer(PullEventConsumer):
         except ClientError as e:
             logger.error(f"Error nacking message {message.id}: {e}")
 
-    async def _poll_loop(self) -> None:
+    @async_exponential_backoff(
+        max_attempts=5,
+        multiplier=2,
+        min_wait=10,
+        max_wait=60,
+        retry_on_exceptions=(ClientError,),
+    )
+    async def _poll_loop(self) -> None:  # type: ignore[override]
         """
         Main loop for polling SQS and processing messages.
         """
-        async with self.session.client("sqs") as sqs:
+        async with self.session.client("sqs", region_name=self.config.region) as sqs:
             while self._running:
-                for attempt in range(self.config.max_retries + 1):
-                    try:
-                        response = await sqs.receive_message(
-                            QueueUrl=self.config.endpoint,
-                            MaxNumberOfMessages=self.config.max_number_of_messages,
-                            VisibilityTimeout=self.config.visibility_timeout,
-                            WaitTimeSeconds=self.config.wait_time_seconds,
-                            AttributeNames=["All"],
-                            MessageAttributeNames=["All"],
+                logger.debug(
+                    f"Polling SQS for new messages from queue: {self.config.queue_url}"
+                )
+                try:
+                    response = await sqs.receive_message(
+                        QueueUrl=self.config.queue_url,
+                        MaxNumberOfMessages=self.config.max_number_of_messages,
+                        VisibilityTimeout=self.config.visibility_timeout,
+                        WaitTimeSeconds=self.config.wait_time_seconds,
+                        AttributeNames=["All"],
+                        MessageAttributeNames=["All"],
+                    )
+                    messages = response.get("Messages", [])
+                    if messages:
+                        # Process messages in parallel with semaphore
+                        logger.debug(
+                            f"Found {len(messages)} message(s), dispatching..."
                         )
-                        messages = response.get("Messages", [])
-                        if messages:
-                            # Process messages in parallel with semaphore
-                            logger.debug(
-                                f"Found {len(messages)} message(s), dispatching..."
-                            )
-                            tasks = [self._process_message(msg) for msg in messages]
-                            await asyncio.gather(*tasks)
-                        else:
-                            await asyncio.sleep(self.config.poll_interval)
-                        break  # Success, exit retry loop
-                    except ClientError as e:
-                        logger.error(
-                            f"Error polling SQS (attempt {attempt + 1}/{self.config.max_retries + 1}): {e}"
-                        )
-                        if attempt == self.config.max_retries:
-                            logger.critical("Exhausted retries, stopping consumer")
-                            await self.stop()
-                            break
+                        tasks = [self._process_message(msg) for msg in messages]
+                        await asyncio.gather(*tasks)
+                    else:
                         await asyncio.sleep(self.config.poll_interval)
+                except ClientError as e:
+                    logger.warning(
+                        f"Error polling SQS: {e} ({getattr(e, 'response', None)}), retrying..."
+                    )
+                    raise e
 
     async def _process_message(self, message: Dict[str, Any]) -> None:
         """
@@ -167,6 +204,7 @@ class SQSConsumer(PullEventConsumer):
         """
         async with self._semaphore:
             try:
+                event = None
                 try:
                     body = json.loads(message["Body"])
                 except json.JSONDecodeError:
@@ -185,7 +223,6 @@ class SQSConsumer(PullEventConsumer):
                     **message.get("Attributes", {}),
                     **message.get("MessageAttributes", {}),
                 }
-                print("Hi")
 
                 event = Message(
                     id=message["MessageId"],
@@ -198,7 +235,12 @@ class SQSConsumer(PullEventConsumer):
                 await self.dispatch(event)
 
             except Exception as e:
-                logger.error(
-                    f"Error processing message {message.get('MessageId')}: {e}"
+                if event:
+                    logger.error(
+                        f"Nacking message {message.get('MessageId')} due to error: {e}"
+                    )
+                    await self.nack(event, requeue=True)
+                logger.warning(
+                    f"Skipping nack message {message.get('MessageId')} because no event was found: {e}"
                 )
-                await self.nack(event, requeue=True)
+                raise e

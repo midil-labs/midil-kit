@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+from functools import wraps
 from typing import (
     Awaitable,
     Callable,
@@ -57,6 +58,7 @@ def async_exponential_backoff(
             retry=retry_if_exception_type(*retry_on_exceptions),
             reraise=True,
         )
+        @wraps(func)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             if is_coroutine:
                 return await cast(AsyncCallable[P, R], func)(*args, **kwargs)
