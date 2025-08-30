@@ -18,6 +18,20 @@ class WebhookPushConsumer(PushEventConsumer):
         self.config = config
         self._router = APIRouter()
 
+        logger.info("Starting webhook consumer")
+
+        # Create the route statically so it's available for FastAPI's OpenAPI schema.
+        # FastAPI needs to know about all routes at startup time to include them in the OpenAPI schema that powers the Swagger UI
+        @self._router.post(
+            self.config.endpoint,
+            summary="Receive webhook events",
+            description="Endpoint to receive webhook events",
+        )
+        async def receive_hook(request: Request):
+            return await self._handler(request)
+
+        logger.info(f"Webhook consumer ready at {self.config.endpoint}")
+
     @property
     def entrypoint(self) -> APIRouter:
         return self._router
@@ -38,13 +52,6 @@ class WebhookPushConsumer(PushEventConsumer):
         """
         Setup the webhook consumer routes to receive events.
         """
-
-        logger.info("Starting webhook consumer")
-
-        @self._router.post(self.config.endpoint)
-        async def receive_hook(request: Request):
-            return await self._handler(request)
-
         logger.info(f"Webhook consumer ready at {self.config.endpoint}")
 
     async def stop(self) -> None:
