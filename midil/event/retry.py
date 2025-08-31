@@ -1,34 +1,28 @@
 from __future__ import annotations
 
-import asyncio
-import functools
 from functools import wraps
 from typing import (
-    Awaitable,
+    Any,
     Callable,
     ParamSpec,
     TypeVar,
-    Union,
-    cast,
-    Any,
+    Coroutine,
+    AsyncGenerator,
 )
 
 from tenacity import (
     retry,
+    AsyncRetrying,
     stop_after_attempt,
     wait_exponential,
     retry_if_exception_type,
-    AsyncRetrying,
 )
 
 P = ParamSpec("P")
 R = TypeVar("R")
 
-
 SyncCallable = Callable[P, R]
-AsyncCallable = Callable[P, Awaitable[R]]
-AnyCallable = Union[SyncCallable[P, R], AsyncCallable[P, R]]
-
+CoroutineCallable = Callable[P, Coroutine[Any, Any, R]]
 
 _DEFAULT_MAX_ATTEMPTS = 3
 _DEFAULT_MULTIPLIER = 1
@@ -36,69 +30,122 @@ _DEFAULT_MIN_WAIT = 1
 _DEFAULT_MAX_WAIT = 10
 
 
-def async_exponential_backoff(
-    max_attempts: int = _DEFAULT_MAX_ATTEMPTS,
+def exponential_backoff(
+    max_attempts: int | None = _DEFAULT_MAX_ATTEMPTS,
     multiplier: float = _DEFAULT_MULTIPLIER,
     min_wait: int = _DEFAULT_MIN_WAIT,
     max_wait: int = _DEFAULT_MAX_WAIT,
     retry_on_exceptions: tuple[type[Exception], ...] = (Exception,),
-) -> Callable[[AnyCallable[P, R]], AsyncCallable[P, R]]:
+) -> Callable[[SyncCallable[P, R]], SyncCallable[P, R]]:
     """
-    Retry logic with exponential backoff for async dispatch.
-    - Async callables are awaited directly.
-    - Sync callables are run inside the event loop executor.
+    Retry logic with exponential backoff for sync callables.
+    - Sync callables are retried in-place.
+    - Uses Tenacity's @retry decorator internally.
     """
 
-    def decorator(func: AnyCallable[P, R]) -> AsyncCallable[P, R]:
-        is_coroutine = asyncio.iscoroutinefunction(func)
-
-        @retry(
-            stop=stop_after_attempt(max_attempts),
+    def decorator(func: SyncCallable[P, R]) -> SyncCallable[P, R]:
+        stop_strategy = (
+            stop_after_attempt(max_attempts)
+            if max_attempts is not None
+            else stop_after_attempt(_DEFAULT_MAX_ATTEMPTS)
+        )
+        retry_decorator = retry(
+            stop=stop_strategy,
             wait=wait_exponential(multiplier=multiplier, min=min_wait, max=max_wait),
             retry=retry_if_exception_type(*retry_on_exceptions),
             reraise=True,
         )
+
+        @retry_decorator
         @wraps(func)
-        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            if is_coroutine:
-                return await cast(AsyncCallable[P, R], func)(*args, **kwargs)
-            else:
-                loop = asyncio.get_running_loop()
-                bound_func = functools.partial(
-                    cast(SyncCallable[P, R], func), *args, **kwargs
-                )
-                return await loop.run_in_executor(None, bound_func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            return func(*args, **kwargs)
 
         return wrapper
 
     return decorator
 
 
-class AsyncExponentialBackoff:
-    def __init__(
-        self,
-        max_attempts: int = _DEFAULT_MAX_ATTEMPTS,
-        multiplier: int = _DEFAULT_MULTIPLIER,
-        min_wait: int = _DEFAULT_MIN_WAIT,
-        max_wait: int = _DEFAULT_MAX_WAIT,
-    ):
-        self.max_attempts = max_attempts
-        self.multiplier = multiplier
-        self.min_wait = min_wait
-        self.max_wait = max_wait
+def exponential_backoff_async(
+    max_attempts: int = _DEFAULT_MAX_ATTEMPTS,
+    multiplier: float = _DEFAULT_MULTIPLIER,
+    min_wait: int = _DEFAULT_MIN_WAIT,
+    max_wait: int = _DEFAULT_MAX_WAIT,
+    retry_on_exceptions: tuple[type[Exception], ...] = (Exception,),
+) -> Callable[[CoroutineCallable[P, R]], CoroutineCallable[P, R]]:
+    """
+    Retry logic with exponential backoff for async callables.
+    Always returns a coroutine function (not just an Awaitable).
+    """
 
-    async def run(self, func: Callable[..., Awaitable[Any]], *args, **kwargs) -> Any:
-        async for attempt in AsyncRetrying(
-            stop=stop_after_attempt(self.max_attempts),
-            wait=wait_exponential(
-                multiplier=self.multiplier, min=self.min_wait, max=self.max_wait
-            ),
-            reraise=True,
-        ):
-            with attempt:
-                if asyncio.iscoroutinefunction(func):
+    def decorator(func: CoroutineCallable[P, R]) -> CoroutineCallable[P, R]:
+        @wraps(func)
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            async for attempt in AsyncRetrying(
+                stop=stop_after_attempt(max_attempts),
+                wait=wait_exponential(
+                    multiplier=multiplier, min=min_wait, max=max_wait
+                ),
+                retry=retry_if_exception_type(*retry_on_exceptions),
+                reraise=True,
+            ):
+                with attempt:
                     return await func(*args, **kwargs)
-                else:
-                    loop = asyncio.get_running_loop()
-                    partial_func = functools.partial(func, *args, **kwargs)
-                    return await loop.run_in_executor(None, partial_func)
+
+            raise RuntimeError(
+                "Unreachable: async_exponential_backoff exhausted attempts without returning."
+            )
+
+        return wrapper
+
+    return decorator
+
+
+def exponential_backoff_asyncgen[
+    T
+](
+    max_attempts: int = _DEFAULT_MAX_ATTEMPTS,
+    multiplier: float = _DEFAULT_MULTIPLIER,
+    min_wait: int = _DEFAULT_MIN_WAIT,
+    max_wait: int = _DEFAULT_MAX_WAIT,
+    retry_on_exceptions: tuple[type[Exception], ...] = (Exception,),
+) -> Callable[..., Callable[..., AsyncGenerator[T, None]]]:
+    """
+    Retry logic with exponential backoff for async generators.
+    Retries each `__anext__` call, not the entire generator.
+    """
+
+    def decorator(
+        func: Callable[..., AsyncGenerator[T, None]]
+    ) -> Callable[..., AsyncGenerator[T, None]]:
+        async def wrapper(*args, **kwargs) -> AsyncGenerator[T, None]:
+            gen = func(*args, **kwargs)
+
+            async for item in _wrap_asyncgen_with_retry(gen):
+                yield item
+
+        async def _wrap_asyncgen_with_retry(
+            gen: AsyncGenerator[T, None]
+        ) -> AsyncGenerator[T, None]:
+            retry_decorator = retry(
+                stop=stop_after_attempt(max_attempts),
+                wait=wait_exponential(
+                    multiplier=multiplier, min=min_wait, max=max_wait
+                ),
+                retry=retry_if_exception_type(*retry_on_exceptions),
+                reraise=True,
+            )
+
+            @retry_decorator
+            async def _next() -> T:
+                return await gen.__anext__()
+
+            while True:
+                try:
+                    yield await _next()
+                except StopAsyncIteration:
+                    break
+
+        return wrapper
+
+    return decorator

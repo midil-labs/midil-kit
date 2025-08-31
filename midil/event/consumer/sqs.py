@@ -12,7 +12,7 @@ from typing import Dict, Any, Optional
 import json
 from datetime import datetime
 from pydantic import model_validator
-from midil.event.retry import async_exponential_backoff
+from midil.utils.retry import exponential_backoff_async
 from midil.event.utils import get_region_from_queue_url
 
 
@@ -146,14 +146,14 @@ class SQSConsumer(PullEventConsumer):
         except ClientError as e:
             logger.error(f"Error nacking message {message.id}: {e}")
 
-    @async_exponential_backoff(
+    @exponential_backoff_async(
         max_attempts=5,
         multiplier=2,
         min_wait=10,
         max_wait=60,
         retry_on_exceptions=(ClientError,),
     )
-    async def _poll_loop(self) -> None:  # type: ignore[override]
+    async def _poll_loop(self) -> None:
         """
         Main loop for polling SQS and processing messages.
         """

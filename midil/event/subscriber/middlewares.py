@@ -62,8 +62,10 @@ class GroupMiddleware(SubscriberMiddleware):
                     logger.error(f"[GroupMiddleware] Middleware error: {r}")
 
 
-class RetryPolicy(Protocol):
-    async def run(self, func: Callable[..., Awaitable[Any]], *args, **kwargs) -> Any:
+class _RetryCallable(Protocol):
+    async def __call__(
+        self, func: Callable[..., Awaitable[Any]], *args, **kwargs
+    ) -> Any:
         ...
 
 
@@ -92,13 +94,13 @@ class RetryMiddleware(SubscriberMiddleware):
         Any exception not handled by the retry policy will be propagated.
     """
 
-    def __init__(self, retry_policy: RetryPolicy):
-        self.retry_policy = retry_policy
+    def __init__(self, func: _RetryCallable):
+        self.func = func
 
     async def __call__(
         self, call_next: Callable[[Any], Awaitable[Any]], event: Any
     ) -> Any:
-        return await self.retry_policy.run(call_next, event)
+        return await self.func(call_next, event)
 
 
 class LoggingMiddleware(SubscriberMiddleware):

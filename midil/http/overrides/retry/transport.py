@@ -11,6 +11,7 @@ from midil.http.overrides.retry.protocols import (
 )
 from midil.http.overrides.retry.strategies import DefaultRetryStrategy
 from midil.http.overrides.retry.backoffs import ExponentialBackoffAdaptor
+from loguru import logger
 
 
 class RetryTransport(httpx.AsyncBaseTransport, httpx.BaseTransport):
@@ -21,7 +22,6 @@ class RetryTransport(httpx.AsyncBaseTransport, httpx.BaseTransport):
         retry_strategy: RetryStrategy = DefaultRetryStrategy(),
         backoff_strategy: BackoffStrategy = ExponentialBackoffAdaptor(),
         observer: Optional[RetryObserver] = None,
-        logger: Optional[Any] = None,
     ) -> None:
         """
         A custom HTTP transport for httpx that automatically retries requests using a configurable
@@ -40,15 +40,12 @@ class RetryTransport(httpx.AsyncBaseTransport, httpx.BaseTransport):
                 The strategy to determine how long to wait between retries. Defaults to ExponentialBackoffWithJitter().
             observer (Optional[RetryObserver], optional):
                 An optional observer that can mutate the request before each retry (e.g., to refresh auth).
-            logger (Optional[Any], optional):
-                An optional logger for logging retry attempts and errors.
         """
         self._wrapped = wrapped
         self._max_attempts = max_attempts
         self._retry_strategy = retry_strategy
         self._backoff_strategy = backoff_strategy
         self._observer = observer
-        self._logger = logger
 
     def handle_request(self, request: httpx.Request) -> httpx.Response:
         return self._sync_retry_loop(request, self._wrapped.handle_request)  # type: ignore
@@ -71,7 +68,11 @@ class RetryTransport(httpx.AsyncBaseTransport, httpx.BaseTransport):
                 error = exc
                 if not self._retry_strategy.should_retry(request, None, exc):
                     raise
-            self._log_retry(request, response, error, attempt)
+            msg = f"Retry {attempt} for {request.method} {request.url}"
+            if error:
+                logger.warning(f"{msg} due to error: {error}")
+            elif response:
+                logger.warning(f"{msg} with status: {response.status_code}")
             time.sleep(
                 self._backoff_strategy.calculate_sleep(
                     attempt, response.headers if response else {}
@@ -97,7 +98,11 @@ class RetryTransport(httpx.AsyncBaseTransport, httpx.BaseTransport):
                 error = exc
                 if not self._retry_strategy.should_retry(request, None, exc):
                     raise
-            self._log_retry(request, response, error, attempt)
+            msg = f"Retry {attempt} for {request.method} {request.url}"
+            if error:
+                logger.warning(f"{msg} due to error: {error}")
+            elif response:
+                logger.warning(f"{msg} with status: {response.status_code}")
             await asyncio.sleep(
                 self._backoff_strategy.calculate_sleep(
                     attempt, response.headers if response else {}
@@ -105,21 +110,6 @@ class RetryTransport(httpx.AsyncBaseTransport, httpx.BaseTransport):
             )
             request = self._observer.on_retry(request) if self._observer else request
         return response  # type: ignore # Final failed attempt
-
-    def _log_retry(
-        self,
-        request: httpx.Request,
-        response: Optional[httpx.Response],
-        error: Optional[Exception],
-        attempt: int,
-    ):
-        if not self._logger:
-            return
-        msg = f"Retry {attempt} for {request.method} {request.url}"
-        if error:
-            self._logger.warning(f"{msg} due to error: {error}")
-        elif response:
-            self._logger.warning(f"{msg} with status: {response.status_code}")
 
     async def aclose(self) -> None:
         await self._wrapped.aclose()  # type: ignore
