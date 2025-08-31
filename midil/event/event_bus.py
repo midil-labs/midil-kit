@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Literal
+from typing import Any, Dict, Optional, Literal, Union
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from midil.event.producer.base import EventProducer, EventProducerConfig
@@ -39,13 +39,15 @@ class EventConfig(BaseSettings):
                   SQSConsumerConfig, WebhookPushConsumerConfig, or None.
     """
 
-    consumer: Optional[EventConsumerConfig] = None
+    consumer: Optional[
+        Union[SQSConsumerConfig, WebhookPushConsumerConfig, EventConsumerConfig]
+    ] = None
     producer: Optional[EventProducerConfig] = None
 
     model_config = SettingsConfigDict(
         env_prefix="MIDIL__EVENT__",
         env_nested_delimiter="__",
-        extra="forbid",
+        extra="ignore",
         # env_parse_json=True
     )
 
@@ -114,7 +116,9 @@ class EventBusFactory:
     @classmethod
     def create_consumer(
         cls,
-        config: EventConsumerConfig,
+        config: Union[
+            SQSConsumerConfig, WebhookPushConsumerConfig, EventConsumerConfig
+        ],
     ) -> PullEventConsumer | PushEventConsumer:
         """
         Create an event consumer instance (pull or push) based on the provided configuration.
@@ -128,6 +132,8 @@ class EventBusFactory:
         Raises:
             ValueError: If the consumer type is not supported.
         """
+        print(config.model_dump())
+
         consumer_cls = cls.CONSUMER_MAP.get(config.type)
         if not consumer_cls:
             raise ConsumerNotImplementedError(config.type)
@@ -180,7 +186,7 @@ class EventBus:
 
     def __init__(
         self,
-        config: EventConfig = EventConfig(),
+        config: Optional[EventConfig] = None,
     ):
         """
         Initialize the EventBus with the given configuration.
@@ -188,6 +194,9 @@ class EventBus:
         Args:
             config: An EventBusConfig instance specifying producer and/or consumer configuration.
         """
+        if config is None:
+            config = EventConfig()
+
         if config.producer:
             self.producer = EventBusFactory.create_producer(config.producer)
         if config.consumer:

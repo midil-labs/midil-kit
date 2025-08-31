@@ -69,7 +69,7 @@ class SQSConsumer(PullEventConsumer):
         config: SQSConsumerConfig,
     ):
         super().__init__(config)
-        self.config = config
+        self._config: SQSConsumerConfig = config
         self.session = aioboto3.Session()
         self._semaphore = asyncio.Semaphore(int(config.max_concurrent_messages))
 
@@ -81,9 +81,11 @@ class SQSConsumer(PullEventConsumer):
             message (EventContext): The SQS message dictionary, expected to contain 'ReceiptHandle'.
         """
         try:
-            async with self.session.client("sqs") as sqs:
+            async with self.session.client(
+                "sqs", region_name=self._config.region
+            ) as sqs:
                 await sqs.delete_message(
-                    QueueUrl=self.config.queue_url,
+                    QueueUrl=self._config.queue_url,
                     ReceiptHandle=message.ack_handle,
                 )
                 logger.debug(f"Acknowledged message {message.id}")
@@ -108,16 +110,16 @@ class SQSConsumer(PullEventConsumer):
             requeue (bool): Whether to send the message to the DLQ (if configured).
         """
         try:
-            if requeue and self.config.dlq_url:
+            if requeue and self._config.dlq_url:
                 # move to dead letter queue
                 async with self.session.client(
-                    "sqs", region_name=self.config.dlq_region
+                    "sqs", region_name=self._config.dlq_region
                 ) as sqs:
                     params = {
-                        "QueueUrl": self.config.dlq_url,
+                        "QueueUrl": self._config.dlq_url,
                         "MessageBody": message.model_dump_json(),
                     }
-                    if self.config.dlq_url.endswith(".fifo"):
+                    if self._config.dlq_url.endswith(".fifo"):
                         params.update(
                             {
                                 "MessageGroupId": message.metadata.get(
@@ -134,10 +136,10 @@ class SQSConsumer(PullEventConsumer):
 
             else:
                 async with self.session.client(
-                    "sqs", region_name=self.config.region
+                    "sqs", region_name=self._config.region
                 ) as sqs:
                     await sqs.change_message_visibility(
-                        QueueUrl=self.config.queue_url,
+                        QueueUrl=self._config.queue_url,
                         ReceiptHandle=message.ack_handle,
                         VisibilityTimeout=0,
                     )
@@ -157,17 +159,17 @@ class SQSConsumer(PullEventConsumer):
         """
         Main loop for polling SQS and processing messages.
         """
-        async with self.session.client("sqs", region_name=self.config.region) as sqs:
+        async with self.session.client("sqs", region_name=self._config.region) as sqs:
             while self._running:
                 logger.debug(
-                    f"Polling SQS for new messages from queue: {self.config.queue_url}"
+                    f"Polling SQS for new messages from queue: {self._config.queue_url}"
                 )
                 try:
                     response = await sqs.receive_message(
-                        QueueUrl=self.config.queue_url,
-                        MaxNumberOfMessages=self.config.max_number_of_messages,
-                        VisibilityTimeout=self.config.visibility_timeout,
-                        WaitTimeSeconds=self.config.wait_time_seconds,
+                        QueueUrl=self._config.queue_url,
+                        MaxNumberOfMessages=self._config.max_number_of_messages,
+                        VisibilityTimeout=self._config.visibility_timeout,
+                        WaitTimeSeconds=self._config.wait_time_seconds,
                         AttributeNames=["All"],
                         MessageAttributeNames=["All"],
                     )
@@ -180,7 +182,7 @@ class SQSConsumer(PullEventConsumer):
                         tasks = [self._process_message(msg) for msg in messages]
                         await asyncio.gather(*tasks)
                     else:
-                        await asyncio.sleep(self.config.poll_interval)
+                        await asyncio.sleep(self._config.poll_interval)
                 except ClientError as e:
                     logger.warning(
                         f"Error polling SQS: {e} ({getattr(e, 'response', None)}), retrying..."
@@ -218,7 +220,6 @@ class SQSConsumer(PullEventConsumer):
                     body=body,
                     timestamp=timestamp,
                     ack_handle=message["ReceiptHandle"],
-                    source="sqs",
                     metadata=metadata,
                 )
                 await self.dispatch(event)

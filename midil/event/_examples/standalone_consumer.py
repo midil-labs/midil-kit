@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from typing import Dict, Any
 from midil.event.subscriber.base import FunctionSubscriber
-
+from loguru import logger
 
 # Create config explicitly (recommended for examples)
 config = SQSConsumerConfig()
@@ -22,7 +22,7 @@ consumer = SQSConsumer(config)
 
 
 def handle_event(event: Dict[str, Any]):
-    print("Function subscriber", event)
+    logger.info(f"Event {event} handled successfully")
 
 
 consumer.subscribe(FunctionSubscriber(handle_event))

@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 
 # Create config explicitly (recommended for examples)
 config = SQSProducerConfig()
-print(config.model_dump_json())
 producer = SQSProducer(config)
 
 

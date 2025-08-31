@@ -29,10 +29,59 @@ class EventSubscriber(ABC):
         Args:
             event (Any): The event object to be processed.
 
-        Raises:
-            NotImplementedError: If not implemented by subclass.
         """
         ...
+
+    async def authorize(self, event: Any) -> bool:
+        """
+        Authorize the event.
+        """
+        return True
+
+    async def should_handle(self, event: Any) -> Awaitable[bool] | bool:
+        """
+        Check if the event should be handled.
+        """
+        return True
+
+    async def on_error(
+        self, event: Any, error: Exception, context: Optional[str] = None
+    ) -> None:
+        """
+        Handle an error that occurred while handling the event.
+        """
+        pass
+
+    async def on_success(self, event: Any) -> None:
+        """
+        Handle a successful event.
+        """
+        pass
+
+    async def __call__(self, event: Any) -> None:
+        """
+        Invoke the subscriber for the given event.
+
+        This method orchestrates the event handling lifecycle:
+        - Checks if the event should be handled (`should_handle`)
+        - Authorizes the event (`authorize`)
+        - Handles the event (`handle`)
+        - Calls success or error hooks (`on_success`, `on_error`)
+        """
+        try:
+            should_handle = await self.should_handle(event)
+            if not should_handle:
+                return
+
+            authorized = await self.authorize(event)
+            if not authorized:
+                return
+
+            await self.handle(event)
+        except Exception as exc:
+            await self.on_error(event, exc)
+        else:
+            await self.on_success(event)
 
 
 class SubscriberMiddleware(ABC):

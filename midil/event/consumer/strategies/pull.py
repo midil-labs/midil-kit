@@ -19,7 +19,7 @@ class PullEventConsumerConfig(EventConsumerConfig):
 
 class PullEventConsumer(EventConsumer):
     def __init__(self, config: PullEventConsumerConfig):
-        self._config: PullEventConsumerConfig = config
+        super().__init__(config)
         self._running: bool = False
         self._loop_task: asyncio.Task[Any] | None = None
 

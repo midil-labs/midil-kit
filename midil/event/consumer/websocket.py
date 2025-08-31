@@ -15,7 +15,8 @@ class WebSocketPushConsumerConfig(PushEventConsumerConfig):
 
 class WebSocketPushConsumer(PushEventConsumer):
     def __init__(self, config: WebSocketPushConsumerConfig):
-        self.config: WebSocketPushConsumerConfig = config
+        super().__init__(config)
+        self._config: WebSocketPushConsumerConfig = config
         self._router = APIRouter()
         self.connections: List[WebSocket] = []
 
@@ -36,11 +37,11 @@ class WebSocketPushConsumer(PushEventConsumer):
             self.connections.remove(websocket)
 
     async def start(self) -> None:
-        @self._router.websocket(self.config.endpoint)
+        @self._router.websocket(self._config.endpoint)
         async def websocket_endpoint(websocket: WebSocket) -> None:
             return await self._handler(websocket)
 
-        logger.info(f"WebSocket consumer ready at {self.config.endpoint}")
+        logger.info(f"WebSocket consumer ready at {self._config.endpoint}")
 
     async def stop(self) -> None:
         self.connections.clear()

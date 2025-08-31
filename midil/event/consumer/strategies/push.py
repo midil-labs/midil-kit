@@ -9,7 +9,7 @@ class PushEventConsumerConfig(EventConsumerConfig):
 
 class PushEventConsumer(EventConsumer):
     def __init__(self, config: PushEventConsumerConfig):
-        self._config = config
+        super().__init__(config)
 
     @property
     def entrypoint(self) -> Any:

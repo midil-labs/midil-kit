@@ -30,9 +30,6 @@ class Message(AllowExtraFieldsModel):
     metadata: Dict[str, Any] = Field(
         default_factory=dict, description="Additional message properties or headers"
     )
-    source: Optional[str] = Field(
-        None, description="Source system of the message (e.g., sqs, kafka, rabbitmq)"
-    )
 
 
 class EventConsumerConfig(BaseSettings):
@@ -74,7 +71,9 @@ class EventConsumer(ABC):
         _config (EventConsumerConfig): The configuration object for the consumer.
     """
 
-    _subscribers: Set[EventSubscriber] = set()
+    def __init__(self, config: EventConsumerConfig):
+        self._subscribers: Set[EventSubscriber] = set()
+        self._config: EventConsumerConfig = config
 
     def subscribe(self, subscriber: EventSubscriber) -> None:
         """
@@ -96,7 +95,7 @@ class EventConsumer(ABC):
         if subscriber in self._subscribers:
             self._subscribers.remove(subscriber)
 
-    async def dispatch(self, event: Message, **kwargs: Any) -> None:
+    async def dispatch(self, event: Message) -> None:
         """
         Dispatch events to all registered subscribers.
         """
@@ -105,7 +104,7 @@ class EventConsumer(ABC):
             return
 
         tasks: List[Awaitable[Any]] = [
-            subscriber.handle(event) for subscriber in self._subscribers
+            subscriber(event) for subscriber in self._subscribers
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
