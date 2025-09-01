@@ -7,11 +7,11 @@ from loguru import logger
 import asyncio
 from typing import Any
 from pydantic import Field
-from midil.event.consumer.strategies.base import EventConsumerConfig
+from midil.event.consumer.strategies.base import BaseConsumerConfig
 from abc import abstractmethod
 
 
-class PullEventConsumerConfig(EventConsumerConfig):
+class PullEventConsumerConfig(BaseConsumerConfig):
     poll_interval: float = Field(
         default=0.1, description="Interval between polls if no messages", ge=0.0
     )

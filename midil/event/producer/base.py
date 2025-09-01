@@ -1,17 +1,11 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+
+from pydantic import BaseModel, Field
 
 
-class EventProducerConfig(BaseSettings):
+class BaseProducerConfig(BaseModel):
     type: str = Field(..., description="Type of the producer configuration")
-
-    model_config = SettingsConfigDict(
-        env_prefix="MIDIL__EVENT__PRODUCER__",
-        env_nested_delimiter="__",
-        extra="ignore",
-    )
 
 
 class EventProducer(ABC):

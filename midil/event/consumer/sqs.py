@@ -8,7 +8,7 @@ from loguru import logger
 from midil.event.consumer.strategies.base import Message
 from pydantic import Field
 from botocore.exceptions import ClientError
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Literal
 import json
 from datetime import datetime
 from pydantic import model_validator
@@ -16,8 +16,8 @@ from midil.utils.retry import exponential_backoff_async
 from midil.event.utils import get_region_from_queue_url
 
 
-class SQSConsumerConfig(PullEventConsumerConfig):
-    type: str = "sqs"
+class SQSConsumerEventConfig(PullEventConsumerConfig):
+    type: Literal["sqs"] = "sqs"
     queue_url: str = Field(..., description="URL of the queue")
     dlq_url: Optional[str] = Field(
         default=None, description="URL of the dead-letter queue"
@@ -59,17 +59,14 @@ class SQSConsumerConfig(PullEventConsumerConfig):
             )
         return self
 
-    def __str__(self):
-        return f"SQSConsumerConfig(queue={self.queue_url}, region={self.region}, dlq={self.dlq_url})"
-
 
 class SQSConsumer(PullEventConsumer):
     def __init__(
         self,
-        config: SQSConsumerConfig,
+        config: SQSConsumerEventConfig,
     ):
         super().__init__(config)
-        self._config: SQSConsumerConfig = config
+        self._config: SQSConsumerEventConfig = config
         self.session = aioboto3.Session()
         self._semaphore = asyncio.Semaphore(int(config.max_concurrent_messages))
 

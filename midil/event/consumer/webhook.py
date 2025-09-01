@@ -5,17 +5,18 @@ from midil.event.consumer.strategies.push import (
     PushEventConsumer,
     PushEventConsumerConfig,
 )
+from typing import Literal
 
 
-class WebhookPushConsumerConfig(PushEventConsumerConfig):
-    type: str = "webhook"
+class WebhookConsumerEventConfig(PushEventConsumerConfig):
+    type: Literal["webhook"] = "webhook"
     endpoint: str = "/events"
 
 
-class WebhookPushConsumer(PushEventConsumer):
-    def __init__(self, config: WebhookPushConsumerConfig):
+class WebhookConsumer(PushEventConsumer):
+    def __init__(self, config: WebhookConsumerEventConfig):
         super().__init__(config)
-        self._config: WebhookPushConsumerConfig = config
+        self._config: WebhookConsumerEventConfig = config
         self._router = APIRouter()
 
         logger.info("Starting webhook consumer")

@@ -1,14 +1,14 @@
 from midil.event.producer.base import EventProducer
-from midil.event.producer.base import EventProducerConfig
+from midil.event.producer.base import BaseProducerConfig
 import aioboto3
-from typing import Dict, Any
+from typing import Dict, Any, Literal
 import json
 from pydantic import Field
 from midil.event.utils import get_region_from_queue_url
 
 
-class SQSProducerConfig(EventProducerConfig):
-    type: str = Field("sqs", description="Type of the producer configuration")
+class SQSProducerEventConfig(BaseProducerConfig):
+    type: Literal["sqs"] = "sqs"
     queue_url: str = Field(..., description="URL of the queue")
 
     @property
@@ -17,7 +17,7 @@ class SQSProducerConfig(EventProducerConfig):
 
 
 class SQSProducer(EventProducer):
-    def __init__(self, config: SQSProducerConfig):
+    def __init__(self, config: SQSProducerEventConfig):
         self.session = aioboto3.Session()
         self.config = config
 

@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Annotated, Union, Optional, Sequence, Mapping
 from midil.jsonapi.config import AllowExtraFieldsModel
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Dict, Any, List, Set
 from datetime import datetime
-from pydantic import Field
+from pydantic import BaseModel, Field
 import asyncio
 from loguru import logger
 
@@ -32,7 +31,7 @@ class Message(AllowExtraFieldsModel):
     )
 
 
-class EventConsumerConfig(BaseSettings):
+class BaseConsumerConfig(BaseModel):
     """
     Configuration model for event consumers.
 
@@ -49,14 +48,6 @@ class EventConsumerConfig(BaseSettings):
         ),
     ]
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="allow",
-        env_prefix="MIDIL__EVENT__CONSUMER__",
-        env_nested_delimiter="__",
-    )
-
 
 class EventConsumer(ABC):
     """
@@ -71,9 +62,9 @@ class EventConsumer(ABC):
         _config (EventConsumerConfig): The configuration object for the consumer.
     """
 
-    def __init__(self, config: EventConsumerConfig):
+    def __init__(self, config: BaseConsumerConfig):
         self._subscribers: Set[EventSubscriber] = set()
-        self._config: EventConsumerConfig = config
+        self._config: BaseConsumerConfig = config
 
     def subscribe(self, subscriber: EventSubscriber) -> None:
         """

@@ -1,66 +1,37 @@
-from typing import Any, Dict, Optional, Literal, Union
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Any, Dict, Optional, Literal
+from pydantic_settings import BaseSettings
 
-from midil.event.producer.base import EventProducer, EventProducerConfig
-from midil.event.consumer.strategies.base import EventConsumerConfig
 from midil.event.consumer.strategies.pull import PullEventConsumer
 from midil.event.consumer.strategies.push import PushEventConsumer
 
-from midil.event.producer.redis import RedisProducer, RedisProducerConfig
-from midil.event.producer.sqs import SQSProducer, SQSProducerConfig
+from midil.event.producer.redis import RedisProducer, RedisProducerEventConfig
+from midil.event.producer.sqs import SQSProducer, SQSProducerEventConfig
 
-from midil.event.consumer.sqs import SQSConsumer, SQSConsumerConfig
-from midil.event.consumer.webhook import WebhookPushConsumer, WebhookPushConsumerConfig
+from midil.event.consumer.sqs import SQSConsumer, SQSConsumerEventConfig
+from midil.event.consumer.webhook import WebhookConsumer, WebhookConsumerEventConfig
 
 from midil.event.subscriber.base import (
     EventSubscriber,
     FunctionSubscriber,
     SubscriberMiddleware,
 )
+from midil.event.producer.base import EventProducer
+
 from midil.event.exceptions import (
     ConsumerNotImplementedError,
     ProducerNotImplementedError,
     TransportNotImplementedError,
 )
 
+from midil.event.config import (
+    EventConfig,
+    ProducerConfig,
+    ConsumerConfig,
+)
+
 
 SupportedProducers = Literal["redis", "sqs", "webhook"]
 SupportedConsumers = Literal["sqs", "webhook"]
-
-
-class EventConfig(BaseSettings):
-    """
-    Configuration model for the EventBus.
-
-    Attributes:
-        producer: The configuration for the event producer. Can be one of EventProducerConfig,
-                  SQSProducerConfig, RedisProducerConfig, or None.
-        consumer: The configuration for the event consumer. Can be one of EventConsumerConfig,
-                  SQSConsumerConfig, WebhookPushConsumerConfig, or None.
-    """
-
-    consumer: Optional[
-        Union[SQSConsumerConfig, WebhookPushConsumerConfig, EventConsumerConfig]
-    ] = None
-    producer: Optional[EventProducerConfig] = None
-
-    model_config = SettingsConfigDict(
-        env_prefix="MIDIL__EVENT__",
-        env_nested_delimiter="__",
-        extra="ignore",
-        # env_parse_json=True
-    )
-
-    @classmethod
-    def settings_customise_sources(
-        cls,
-        settings_cls,
-        init_settings,
-        env_settings,
-        dotenv_settings,
-        file_secret_settings,
-    ):
-        return env_settings, init_settings, dotenv_settings, file_secret_settings
 
 
 class EventBusFactory:
@@ -84,18 +55,18 @@ class EventBusFactory:
     }
     CONSUMER_MAP = {
         "sqs": SQSConsumer,
-        "webhook": WebhookPushConsumer,
+        "webhook": WebhookConsumer,
     }
     CONFIG_MAP = {
-        "sqs": {"producer": SQSProducerConfig, "consumer": SQSConsumerConfig},
+        "sqs": {"producer": SQSProducerEventConfig, "consumer": SQSConsumerEventConfig},
         "webhook": {
-            "consumer": WebhookPushConsumerConfig,
+            "consumer": WebhookConsumerEventConfig,
         },
-        "redis": {"producer": RedisProducerConfig},
+        "redis": {"producer": RedisProducerEventConfig},
     }
 
     @classmethod
-    def create_producer(cls, config: EventProducerConfig) -> EventProducer:
+    def create_producer(cls, config: ProducerConfig) -> EventProducer:
         """
         Create an event producer instance based on the provided configuration.
 
@@ -115,10 +86,7 @@ class EventBusFactory:
 
     @classmethod
     def create_consumer(
-        cls,
-        config: Union[
-            SQSConsumerConfig, WebhookPushConsumerConfig, EventConsumerConfig
-        ],
+        cls, config: ConsumerConfig
     ) -> PullEventConsumer | PushEventConsumer:
         """
         Create an event consumer instance (pull or push) based on the provided configuration.

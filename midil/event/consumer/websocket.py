@@ -8,15 +8,15 @@ from loguru import logger
 from typing import List
 
 
-class WebSocketPushConsumerConfig(PushEventConsumerConfig):
+class WebSocketPushConsumerEventConfig(PushEventConsumerConfig):
     type: str = "websocket"
     endpoint: str = "/events/ws"
 
 
 class WebSocketPushConsumer(PushEventConsumer):
-    def __init__(self, config: WebSocketPushConsumerConfig):
+    def __init__(self, config: WebSocketPushConsumerEventConfig):
         super().__init__(config)
-        self._config: WebSocketPushConsumerConfig = config
+        self._config: WebSocketPushConsumerEventConfig = config
         self._router = APIRouter()
         self.connections: List[WebSocket] = []
 

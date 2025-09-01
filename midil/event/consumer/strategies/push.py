@@ -1,9 +1,9 @@
-from midil.event.consumer.strategies.base import EventConsumerConfig
+from midil.event.consumer.strategies.base import BaseConsumerConfig
 from midil.event.consumer.strategies.base import EventConsumer
 from typing import Any
 
 
-class PushEventConsumerConfig(EventConsumerConfig):
+class PushEventConsumerConfig(BaseConsumerConfig):
     ...
 
 

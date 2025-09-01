@@ -2,14 +2,14 @@
 from midil.event.event_bus import EventBus
 
 # Producers
-from midil.event.producer.sqs import SQSProducer, SQSProducerConfig
-from midil.event.producer.base import EventProducerConfig
-from midil.event.producer.redis import RedisProducer, RedisProducerConfig
+from midil.event.producer.sqs import SQSProducer, SQSProducerEventConfig
+from midil.event.producer.base import BaseProducerConfig
+from midil.event.producer.redis import RedisProducer, RedisProducerEventConfig
 
 # Consumers (Base, Pull, Push, SQS)
 from midil.event.consumer.strategies.base import (
     EventConsumer,
-    EventConsumerConfig,
+    BaseConsumerConfig,
     Message,
 )
 from midil.event.consumer.strategies.pull import (
@@ -20,7 +20,7 @@ from midil.event.consumer.strategies.push import (
     PushEventConsumer,
     PushEventConsumerConfig,
 )
-from midil.event.consumer.sqs import SQSConsumer, SQSConsumerConfig
+from midil.event.consumer.sqs import SQSConsumer, SQSConsumerEventConfig
 
 # Subscribers and Middlewares
 from midil.event.subscriber.base import (
@@ -54,19 +54,19 @@ __all__ = [
     "EventBus",
     # Producers
     "SQSProducer",
-    "SQSProducerConfig",
-    "EventProducerConfig",
+    "SQSProducerEventConfig",
+    "BaseProducerConfig",
     "RedisProducer",
-    "RedisProducerConfig",
+    "RedisProducerEventConfig",
     # Consumers
     "EventConsumer",
-    "EventConsumerConfig",
+    "BaseConsumerConfig",
     "PullEventConsumer",
     "PullEventConsumerConfig",
     "PushEventConsumer",
     "PushEventConsumerConfig",
     "SQSConsumer",
-    "SQSConsumerConfig",
+    "SQSConsumerEventConfig",
     "Message",
     # Subscribers and Middlewares
     "EventSubscriber",
