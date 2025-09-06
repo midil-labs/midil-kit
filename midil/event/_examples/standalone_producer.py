@@ -1,13 +1,24 @@
-from midil.event.producer.sqs import SQSProducer, SQSProducerConfig
+from midil.event.producer.sqs import SQSProducer, SQSProducerEventConfig
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 import uvicorn
 from pydantic import BaseModel, Field
+from midil.settings import EventSettings
 
 
-# Create config explicitly (recommended for examples)
-config = SQSProducerConfig()
-producer = SQSProducer(config)
+# Create config explicitly
+# config = SQSProducerEventConfig(queue_url="https://sqs.us-east-1.amazonaws.com/616782207790/booking-events-dev-v1")
+# producer = SQSProducer(config)
+
+# Alternative: Create config from environment variables
+producer_config = EventSettings().event.producer
+
+if not isinstance(producer_config, SQSProducerEventConfig):
+    raise TypeError(
+        "event_settings.event.producer must be an instance of SQSProducerEventConfig"
+    )
+
+producer = SQSProducer(producer_config)
 
 
 @asynccontextmanager

@@ -9,7 +9,6 @@ from midil.event.producer.redis import RedisProducerEventConfig
 from midil.event.producer.sqs import SQSProducerEventConfig
 
 
-# Union types for producers and consumers
 ProducerConfig = Annotated[
     Union[SQSProducerEventConfig, RedisProducerEventConfig], Field(discriminator="type")
 ]

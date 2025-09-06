@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 import uvicorn
-from midil.event.consumer.webhook import WebhookPushConsumer, WebhookPushConsumerConfig
+from midil.event.consumer.webhook import WebhookConsumer, WebhookConsumerEventConfig
 from midil.event.consumer.strategies.base import Message
 from midil.event.subscriber.base import FunctionSubscriber
 from contextlib import asynccontextmanager
@@ -12,8 +12,8 @@ async def handle_event(event: Message):
 
 
 # Configure the webhook consumer
-config = WebhookPushConsumerConfig(endpoint="/evento")
-consumer = WebhookPushConsumer(config)
+config = WebhookConsumerEventConfig(endpoint="/evento")
+consumer = WebhookConsumer(config)
 consumer.subscribe(FunctionSubscriber(handle_event))
 
 

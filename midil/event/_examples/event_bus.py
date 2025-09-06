@@ -5,18 +5,18 @@ from fastapi import FastAPI
 
 import uvicorn
 
-from midil.event.event_bus import EventBus, EventConfig
-from midil.event.consumer.sqs import SQSConsumerConfig
+from midil.event.config import EventConfig
+from midil.event.event_bus import EventBus
 from midil.event.subscriber.middlewares import (
     LoggingMiddleware,
     GroupMiddleware,
     RetryMiddleware,
 )
 from midil.utils.retry import exponential_backoff_async
+from midil.settings import EventSettings
 
-
-config = EventConfig(consumer=SQSConsumerConfig())
-
+event_settings = EventSettings()
+config = EventConfig(consumer=event_settings.event.consumer)
 bus = EventBus(config)
 
 
