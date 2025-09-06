@@ -5,7 +5,16 @@ from midil.event.consumer.strategies.push import (
     PushEventConsumer,
     PushEventConsumerConfig,
 )
-from typing import Literal
+from typing import Literal, Dict, Any
+import hashlib
+import json
+from pydantic import Field
+
+
+class WebhookMessage(Message):
+    headers: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional message properties or headers"
+    )
 
 
 class WebhookConsumerEventConfig(PushEventConsumerConfig):
@@ -28,7 +37,7 @@ class WebhookConsumer(PushEventConsumer):
             summary="Receive webhook events",
             description="Endpoint to receive webhook events",
         )
-        async def receive_hook(request: Request):
+        async def receive_hook(request: Request) -> Dict[str, Any]:
             return await self._handler(request)
 
         logger.info(f"Webhook consumer ready at {self._config.endpoint}")
@@ -40,14 +49,21 @@ class WebhookConsumer(PushEventConsumer):
     async def _handler(
         self,
         request: Request,
-    ):
+    ) -> Dict[str, Any]:
         try:
-            data: Message = await request.json()
-            await self.dispatch(data)
+            data = await request.json()
+            headers = dict(request.headers)
+            message_id = self._hash_body(data)
+            message = WebhookMessage(body=data, id=message_id, headers=headers)
+            await self.dispatch(message)
             return {"status": "ok"}
         except Exception as e:
             logger.exception("Webhook event handling failed")
             raise HTTPException(status_code=400, detail=str(e))
+
+    def _hash_body(self, body: Any) -> str:
+        body_str = json.dumps(body, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(body_str.encode("utf-8")).hexdigest()
 
     async def start(self) -> None:
         """
@@ -61,7 +77,9 @@ class WebhookConsumer(PushEventConsumer):
 
     # push mode → ack/nack can be no-ops
     async def ack(self, message: Message) -> None:
-        logger.debug(f"Acked event {message.id}")
+        logger.debug("Acked event", message=message.model_dump_json())
 
     async def nack(self, message: Message, requeue: bool = True) -> None:
-        logger.warning(f"Nacked event {message.id}, requeue={requeue}")
+        logger.warning(
+            f"Nacked event, requeue={requeue}", message=message.model_dump_json()
+        )

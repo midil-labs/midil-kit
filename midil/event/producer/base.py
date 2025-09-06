@@ -45,7 +45,7 @@ class EventProducer(ABC):
         pass
 
     @abstractmethod
-    def close(self) -> None:
+    async def close(self) -> None:
         """
         Release any resources associated with the producer.
 

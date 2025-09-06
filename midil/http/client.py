@@ -22,13 +22,13 @@ class HttpClient:
         self.base_url = URL(base_url)
         self._base_headers: Dict[str, Any] = dict(headers or {})
         self._auth_client = auth_client
-        self.client = get_http_async_client(
-            base_url=self.base_url, headers=self._base_headers
-        )
+        self._client = get_http_async_client(base_url=self.base_url)
 
     @property
     def client(self) -> httpx.AsyncClient:
         """Get the HTTP client."""
+        print("Getting client", self._client.base_url)
+        print("Getting client base url", self._client.headers)
         return self._client
 
     @client.setter

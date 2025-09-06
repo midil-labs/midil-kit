@@ -3,7 +3,7 @@ from midil.event.producer.base import BaseProducerConfig
 from pydantic import Field
 from typing import Dict, Any, Literal
 import json
-from redis import Redis
+from redis.asyncio import Redis
 
 
 class RedisProducerEventConfig(BaseProducerConfig):
@@ -23,5 +23,5 @@ class RedisProducer(EventProducer):
         message = json.dumps(payload)
         await self.redis.publish(self.config.channel, message)
 
-    def close(self) -> None:
-        self.redis.close()
+    async def close(self) -> None:
+        return await self.redis.close()

@@ -12,6 +12,7 @@ from midil.event.subscriber.base import EventSubscriber
 from midil.event.exceptions import CriticalSubscriberError
 
 from threading import Lock
+from midil.utils.time import utcnow
 
 
 class Message(AllowExtraFieldsModel):
@@ -23,10 +24,11 @@ class Message(AllowExtraFieldsModel):
         ..., description="The actual message payload"
     )
     timestamp: Optional[datetime] = Field(
-        None, description="When the message was published or received"
+        default_factory=utcnow, description="When the message was published or received"
     )
     ack_handle: Optional[str] = Field(
-        None, description="Token or handle required to ack/nack/delete this message"
+        default=None,
+        description="Token or handle required to ack/nack/delete this message",
     )
     metadata: Dict[str, Any] = Field(
         default_factory=dict, description="Additional message properties or headers"
@@ -108,7 +110,7 @@ class EventConsumer(ABC):
         if any(isinstance(r, CriticalSubscriberError) for r in results):
             requeue = True
             logger.error(
-                f"Some subscribers failed for event {event.id}, requeue={requeue}"
+                f"Some subscribers failed for event {getattr(event, 'id', None)}, requeue={requeue}"
             )
             return await self.nack(event, requeue=requeue)
 

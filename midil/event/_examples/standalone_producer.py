@@ -25,7 +25,7 @@ producer = SQSProducer(producer_config)
 async def lifespan(app: FastAPI):
     # If your producer needs to start/stop, do it here
     yield
-    producer.close()
+    await producer.close()
 
 
 app = FastAPI(lifespan=lifespan)

@@ -100,7 +100,6 @@ class EventBusFactory:
         Raises:
             ValueError: If the consumer type is not supported.
         """
-        print(config.model_dump())
 
         consumer_cls = cls.CONSUMER_MAP.get(config.type)
         if not consumer_cls:
@@ -241,4 +240,4 @@ class EventBus:
         if self.consumer:
             await self.consumer.stop()
         if hasattr(self, "producer") and self.producer:
-            self.producer.close()
+            await self.producer.close()

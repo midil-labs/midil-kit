@@ -43,6 +43,7 @@ cookiecutter = "^2.6.0"
 tenacity = "^9.1.2"
 websockets = "^15.0.1"
 aiostream = "^0.7.0"
+aioredis = "^2.0.1"
 
 
 [tool.poetry.group.dev.dependencies]

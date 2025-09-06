@@ -38,29 +38,33 @@ class TestHttpClient:
     @pytest.fixture
     def base_url(self):
         """Create a base URL for testing."""
-        return URL("https://api.example.com")
+        return "https://api.example.com"
 
     @pytest.fixture
-    def http_client(self, mock_auth_provider, base_url):
+    def http_client(self, mock_auth_provider: AuthNProvider, base_url: str):
         """Create an HttpClient instance for testing."""
-        return HttpClient(auth_client=mock_auth_provider, base_url=base_url)
+        print("Creating http client with base url", base_url)
+        http_client = HttpClient(auth_client=mock_auth_provider, base_url=base_url)
+        print("HttpClient created with base url", http_client.client.base_url)
+        return http_client
 
-    def test_init(self, mock_auth_provider, base_url):
+    def test_init(
+        self, http_client: HttpClient, mock_auth_provider: AuthNProvider, base_url: str
+    ):
         """Test HttpClient initialization."""
-        client = HttpClient(auth_client=mock_auth_provider, base_url=base_url)
-
-        assert client.base_url == base_url
+        client = http_client
+        assert client.client.base_url == URL(base_url)
         assert client._auth_client == mock_auth_provider
         assert isinstance(client.client, httpx.AsyncClient)
         assert client.client.base_url == base_url
 
-    def test_client_property_getter(self, http_client):
+    def test_client_property_getter(self, http_client: HttpClient):
         """Test client property getter."""
         client = http_client.client
         assert isinstance(client, httpx.AsyncClient)
         assert client == http_client.client
 
-    def test_client_property_setter(self, http_client, base_url):
+    def test_client_property_setter(self, http_client: HttpClient, base_url: str):
         """Test client property setter."""
         new_client = httpx.AsyncClient()
 
@@ -69,7 +73,7 @@ class TestHttpClient:
         assert http_client.client == new_client
         assert http_client.client.base_url == base_url
 
-    def test_client_setter_updates_base_url(self, http_client):
+    def test_client_setter_updates_base_url(self, http_client: HttpClient):
         """Test that client setter updates base_url on new client."""
         original_base_url = http_client.base_url
         new_client = httpx.AsyncClient(base_url="https://different.com")
@@ -79,7 +83,7 @@ class TestHttpClient:
         # Base URL should be updated to match the HttpClient's base_url
         assert http_client.client.base_url == original_base_url
 
-    async def test_headers_property(self, http_client):
+    async def test_headers_property(self, http_client: HttpClient):
         """Test headers property returns auth headers."""
         headers = await http_client.get_headers()
 
@@ -89,7 +93,9 @@ class TestHttpClient:
         assert "Content-Type" in headers
         assert headers["Authorization"] == "Bearer test-token"
 
-    async def test_headers_property_with_custom_auth(self, base_url):
+    async def test_headers_property_with_custom_auth(
+        self, http_client: HttpClient, base_url: str
+    ):
         """Test headers property with custom auth provider."""
         custom_headers = {
             "Authorization": "Bearer custom-token",
@@ -106,7 +112,7 @@ class TestHttpClient:
         assert headers["Accept"] == "application/vnd.api+json"
         assert headers["X-Custom-Header"] == "custom-value"
 
-    async def test_send_request_success(self, http_client):
+    async def test_send_request_success(self, http_client: HttpClient):
         """Test successful request sending."""
         # Mock response
         mock_response = Mock()
@@ -134,7 +140,7 @@ class TestHttpClient:
             json={"test": "data"},
         )
 
-    async def test_send_request_get_method(self, http_client):
+    async def test_send_request_get_method(self, http_client: HttpClient):
         """Test GET request."""
         mock_response = Mock()
         mock_response.json.return_value = {"data": "retrieved"}
@@ -157,7 +163,7 @@ class TestHttpClient:
             json={},
         )
 
-    async def test_send_request_with_different_methods(self, http_client):
+    async def test_send_request_with_different_methods(self, http_client: HttpClient):
         """Test request with different HTTP methods."""
         mock_response = Mock()
         mock_response.json.return_value = {"success": True}
@@ -177,7 +183,7 @@ class TestHttpClient:
             assert last_call[1]["method"] == method
             assert last_call[1]["url"] == f"/test-{method.lower()}"
 
-    async def test_send_request_http_error(self, http_client):
+    async def test_send_request_http_error(self, http_client: HttpClient):
         """Test request with HTTP error response."""
         mock_response = Mock()
         mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
@@ -191,7 +197,7 @@ class TestHttpClient:
         with pytest.raises(httpx.HTTPStatusError):
             await http_client.send_request(method="GET", url="/not-found", json={})
 
-    async def test_send_request_network_error(self, http_client):
+    async def test_send_request_network_error(self, http_client: HttpClient):
         """Test request with network error."""
         http_client.client.request = AsyncMock(
             side_effect=httpx.ConnectError("Connection failed")
@@ -200,7 +206,7 @@ class TestHttpClient:
         with pytest.raises(httpx.ConnectError):
             await http_client.send_request(method="GET", url="/test", json={})
 
-    async def test_send_request_json_decode_error(self, http_client):
+    async def test_send_request_json_decode_error(self, http_client: HttpClient):
         """Test request with JSON decode error."""
         mock_response = Mock()
         mock_response.raise_for_status.return_value = None
@@ -211,7 +217,7 @@ class TestHttpClient:
         with pytest.raises(ValueError):
             await http_client.send_request(method="GET", url="/test", json={})
 
-    async def test_send_request_uses_fresh_headers(self, http_client):
+    async def test_send_request_uses_fresh_headers(self, http_client: HttpClient):
         """Test that send_request gets fresh headers for each request."""
         mock_response = Mock()
         mock_response.json.return_value = {"success": True}
@@ -226,14 +232,16 @@ class TestHttpClient:
         # Verify auth provider was called twice (once for each request)
         assert http_client.client.request.call_count == 2
 
-    async def test_send_paginated_request_not_implemented(self, http_client):
+    async def test_send_paginated_request_not_implemented(
+        self, http_client: HttpClient
+    ):
         """Test that send_paginated_request raises NotImplementedError."""
         with pytest.raises(NotImplementedError):
             await http_client.send_paginated_request(
                 method="GET", url="/paginated", json={}
             )
 
-    def test_type_annotations(self, http_client):
+    def test_type_annotations(self, http_client: HttpClient):
         """Test that type annotations are properly set."""
         import inspect
 
@@ -249,7 +257,9 @@ class TestHttpClient:
             HttpClient, "get_headers"
         )  # Check class level to avoid coroutine creation
 
-    async def test_auth_provider_integration(self, base_url):
+    async def test_auth_provider_integration(
+        self, http_client: HttpClient, base_url: str
+    ):
         """Test integration with different auth providers."""
 
         class CustomAuthProvider(AuthNProvider):
@@ -274,7 +284,7 @@ class TestHttpClient:
         assert headers["Accept"] == "application/custom+json"
         assert headers["Content-Type"] == "application/custom+json"
 
-    async def test_concurrent_requests(self, http_client):
+    async def test_concurrent_requests(self, http_client: HttpClient):
         """Test handling concurrent requests."""
         import anyio
 
@@ -299,7 +309,9 @@ class TestHttpClient:
         assert all(result == {"success": True} for result in results)
         assert http_client.client.request.call_count == 5
 
-    def test_base_url_handling_with_different_url_types(self, mock_auth_provider):
+    def test_base_url_handling_with_different_url_types(
+        self, mock_auth_provider: AuthNProvider
+    ):
         """Test base_url handling with different URL types."""
         # Test with string URL
         string_url = "https://api.example.com"
@@ -311,25 +323,25 @@ class TestHttpClient:
         client2 = HttpClient(auth_client=mock_auth_provider, base_url=url_obj)
         assert client2.base_url == url_obj
 
-    async def test_empty_response_handling(self, http_client):
+    async def test_empty_response_handling(self, http_client: HttpClient):
         """Test handling of empty responses."""
         mock_response = Mock()
         mock_response.json.return_value = {}
         mock_response.raise_for_status.return_value = None
 
-        http_client.client.request = AsyncMock(return_value=mock_response)
+        setattr(http_client.client, "request", AsyncMock(return_value=mock_response))
 
         result = await http_client.send_request("GET", "/empty", json={})
 
         assert result == {}
 
-    async def test_complex_data_structures(self, http_client):
+    async def test_complex_data_structures(self, http_client: HttpClient):
         """Test sending complex data structures."""
         mock_response = Mock()
         mock_response.json.return_value = {"processed": True}
         mock_response.raise_for_status.return_value = None
 
-        http_client.client.request = AsyncMock(return_value=mock_response)
+        setattr(http_client.client, "request", AsyncMock(return_value=mock_response))
 
         complex_data = {
             "user": {
@@ -345,5 +357,5 @@ class TestHttpClient:
         assert result == {"processed": True}
 
         # Verify the complex data was passed correctly
-        call_args = http_client.client.request.call_args
+        call_args = http_client.client.request.call_args  # type: ignore
         assert call_args[1]["json"] == complex_data

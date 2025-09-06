@@ -26,5 +26,5 @@ class SQSProducer(EventProducer):
         async with self.session.client("sqs", region_name=self.config.region) as sqs:
             await sqs.send_message(QueueUrl=self.config.queue_url, MessageBody=message)
 
-    def close(self) -> None:
+    async def close(self) -> None:
         pass

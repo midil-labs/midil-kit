@@ -38,9 +38,9 @@ class EventSubscriber(ABC):
         """
         return True
 
-    async def should_handle(self, event: Any) -> Awaitable[bool] | bool:
+    async def should_handle(self, event: Any) -> bool:
         """
-        Check if the event should be handled.
+        Check if the event should be handled. e.g Validate the event payload.
         """
         return True
 
