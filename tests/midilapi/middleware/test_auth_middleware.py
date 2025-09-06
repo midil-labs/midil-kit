@@ -84,9 +84,7 @@ class TestCognitoAuthMiddleware:
     @patch.dict(
         "os.environ",
         {
-            "COGNITO__USER_POOL_ID": "test-pool-id",
-            "COGNITO__REGION": "us-east-1",
-            "COGNITO__CLIENT_ID": "test-client-id",
+            "MIDIL__AUTH": '{"type": "cognito", "user_pool_id": "test-pool-id", "region": "us-east-1", "client_id": "test-client-id"}',
         },
     )
     @patch("midil.midilapi.middleware.auth_middleware.CognitoJWTAuthorizer")
@@ -122,9 +120,7 @@ class TestCognitoAuthMiddleware:
     @patch.dict(
         "os.environ",
         {
-            "COGNITO__USER_POOL_ID": "test-pool-id",
-            "COGNITO__REGION": "us-east-1",
-            "COGNITO__CLIENT_ID": "test-client-id",
+            "MIDIL__AUTH": '{"type": "cognito", "user_pool_id": "test-pool-id", "region": "us-east-1", "client_id": "test-client-id"}',
         },
     )
     @pytest.mark.anyio
@@ -147,7 +143,9 @@ class TestCognitoAuthMiddleware:
     @pytest.mark.anyio
     @patch.dict(
         "os.environ",
-        {"COGNITO__USER_POOL_ID": "", "COGNITO__REGION": "", "COGNITO__CLIENT_ID": ""},
+        {
+            "MIDIL__AUTH": '{"type": "cognito", "user_pool_id": "", "region": "", "client_id": ""}',
+        },
     )
     @patch("midil.midilapi.middleware.auth_middleware.CognitoJWTAuthorizer")
     async def test_dispatch_empty_environment(

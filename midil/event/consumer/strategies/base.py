@@ -11,11 +11,13 @@ from typing import Awaitable
 from midil.event.subscriber.base import EventSubscriber
 from midil.event.exceptions import CriticalSubscriberError
 
+from threading import Lock
+
 
 class Message(AllowExtraFieldsModel):
     id: Union[str, int] = Field(
         ...,
-        description="Unique identifier for the message or its position, You can rely on the message Id for idepotency",
+        description="Unique identifier for the message or its position, You can rely on the message Id for idempotent",
     )
     body: Sequence[Any] | Mapping[Any, Any] | str = Field(
         ..., description="The actual message payload"
@@ -65,6 +67,7 @@ class EventConsumer(ABC):
     def __init__(self, config: BaseConsumerConfig):
         self._subscribers: Set[EventSubscriber] = set()
         self._config: BaseConsumerConfig = config
+        self._subscription_lock = Lock()
 
     def subscribe(self, subscriber: EventSubscriber) -> None:
         """
@@ -74,7 +77,8 @@ class EventConsumer(ABC):
             subscriber (EventSubscriber): A subscriber that will be invoked
                 when an event is received. The subscriber receives the event payload as a dictionary.
         """
-        self._subscribers.add(subscriber)
+        with self._subscription_lock:
+            self._subscribers.add(subscriber)
 
     async def unsubscribe(self, subscriber: EventSubscriber) -> None:
         """
@@ -83,8 +87,9 @@ class EventConsumer(ABC):
         Args:
             subscriber (EventSubscriber): The subscriber to remove.
         """
-        if subscriber in self._subscribers:
-            self._subscribers.remove(subscriber)
+        with self._subscription_lock:
+            if subscriber in self._subscribers:
+                self._subscribers.remove(subscriber)
 
     async def dispatch(self, event: Message) -> None:
         """

@@ -1,5 +1,6 @@
 from typing import Any, Dict, TYPE_CHECKING, Optional
 import httpx
+from httpx import URL
 
 from midil.http.overrides.async_http import (
     get_http_async_client,
@@ -8,7 +9,6 @@ from midil.auth.interfaces.models import AuthNHeaders
 from typing import Union, Mapping
 
 if TYPE_CHECKING:
-    from httpx import URL
     from midil.auth.interfaces.authenticator import AuthNProvider
 
 
@@ -25,6 +25,18 @@ class HttpClient:
         self.client = get_http_async_client(
             base_url=self.base_url, headers=self._base_headers
         )
+
+    @property
+    def client(self) -> httpx.AsyncClient:
+        """Get the HTTP client."""
+        return self._client
+
+    @client.setter
+    def client(self, value: httpx.AsyncClient) -> None:
+        """Set the HTTP client and update its base_url."""
+        self._client = value
+        # Update the client's base_url to match our base_url
+        self._client.base_url = self.base_url
 
     async def get_headers(self) -> Dict[str, Any]:
         """
@@ -49,7 +61,6 @@ class HttpClient:
         self,
         method: str,
         url: Union[str, URL],
-        *,
         json: Optional[Dict[str, Any]] = None,
         **kwargs: Any,
     ) -> Any:
@@ -57,6 +68,7 @@ class HttpClient:
         Send a single HTTP request with retries and auth headers.
         """
         headers = await self.get_headers()
+
         response: httpx.Response = await self.client.request(
             method=method.upper(),
             url=url,

@@ -81,7 +81,7 @@ class TestHttpClient:
 
     async def test_headers_property(self, http_client):
         """Test headers property returns auth headers."""
-        headers = await http_client.headers
+        headers = await http_client.get_headers()
 
         assert isinstance(headers, dict)
         assert "Authorization" in headers
@@ -100,7 +100,7 @@ class TestHttpClient:
         auth_provider = MockAuthNProvider(custom_headers)
         client = HttpClient(auth_client=auth_provider, base_url=base_url)
 
-        headers = await client.headers
+        headers = await client.get_headers()
 
         assert headers["Authorization"] == "Bearer custom-token"
         assert headers["Accept"] == "application/vnd.api+json"
@@ -117,7 +117,7 @@ class TestHttpClient:
         http_client.client.request = AsyncMock(return_value=mock_response)
 
         result = await http_client.send_request(
-            method="POST", url="/test", data={"test": "data"}
+            method="POST", url="/test", json={"test": "data"}
         )
 
         assert result == {"success": True, "data": "test"}
@@ -142,7 +142,7 @@ class TestHttpClient:
 
         http_client.client.request = AsyncMock(return_value=mock_response)
 
-        result = await http_client.send_request(method="GET", url="/users/123", data={})
+        result = await http_client.send_request(method="GET", url="/users/123", json={})
 
         assert result == {"data": "retrieved"}
 
@@ -169,7 +169,7 @@ class TestHttpClient:
 
         for method in methods:
             await http_client.send_request(
-                method=method, url=f"/test-{method.lower()}", data={"method": method}
+                method=method, url=f"/test-{method.lower()}", json={"method": method}
             )
 
             # Get the last call arguments
@@ -189,7 +189,7 @@ class TestHttpClient:
         http_client.client.request = AsyncMock(return_value=mock_response)
 
         with pytest.raises(httpx.HTTPStatusError):
-            await http_client.send_request(method="GET", url="/not-found", data={})
+            await http_client.send_request(method="GET", url="/not-found", json={})
 
     async def test_send_request_network_error(self, http_client):
         """Test request with network error."""
@@ -198,7 +198,7 @@ class TestHttpClient:
         )
 
         with pytest.raises(httpx.ConnectError):
-            await http_client.send_request(method="GET", url="/test", data={})
+            await http_client.send_request(method="GET", url="/test", json={})
 
     async def test_send_request_json_decode_error(self, http_client):
         """Test request with JSON decode error."""
@@ -209,7 +209,7 @@ class TestHttpClient:
         http_client.client.request = AsyncMock(return_value=mock_response)
 
         with pytest.raises(ValueError):
-            await http_client.send_request(method="GET", url="/test", data={})
+            await http_client.send_request(method="GET", url="/test", json={})
 
     async def test_send_request_uses_fresh_headers(self, http_client):
         """Test that send_request gets fresh headers for each request."""
@@ -220,8 +220,8 @@ class TestHttpClient:
         http_client.client.request = AsyncMock(return_value=mock_response)
 
         # Make two requests
-        await http_client.send_request("GET", "/test1", {})
-        await http_client.send_request("GET", "/test2", {})
+        await http_client.send_request("GET", "/test1", json={})
+        await http_client.send_request("GET", "/test2", json={})
 
         # Verify auth provider was called twice (once for each request)
         assert http_client.client.request.call_count == 2
@@ -230,7 +230,7 @@ class TestHttpClient:
         """Test that send_paginated_request raises NotImplementedError."""
         with pytest.raises(NotImplementedError):
             await http_client.send_paginated_request(
-                method="GET", url="/paginated", data={}
+                method="GET", url="/paginated", json={}
             )
 
     def test_type_annotations(self, http_client):
@@ -246,7 +246,7 @@ class TestHttpClient:
         assert hasattr(http_client, "send_request")
         assert hasattr(http_client, "send_paginated_request")
         assert hasattr(
-            HttpClient, "headers"
+            HttpClient, "get_headers"
         )  # Check class level to avoid coroutine creation
 
     async def test_auth_provider_integration(self, base_url):
@@ -268,7 +268,7 @@ class TestHttpClient:
         custom_auth = CustomAuthProvider()  # type: ignore
         client = HttpClient(auth_client=custom_auth, base_url=base_url)
 
-        headers = await client.headers
+        headers = await client.get_headers()
 
         assert headers["Authorization"] == "Bearer integration-token"
         assert headers["Accept"] == "application/custom+json"
@@ -288,7 +288,7 @@ class TestHttpClient:
         results = []
 
         async def make_request(i):
-            result = await http_client.send_request("GET", f"/test-{i}", {})
+            result = await http_client.send_request("GET", f"/test-{i}", json={})
             results.append(result)
 
         async with anyio.create_task_group() as tg:
@@ -319,7 +319,7 @@ class TestHttpClient:
 
         http_client.client.request = AsyncMock(return_value=mock_response)
 
-        result = await http_client.send_request("GET", "/empty", {})
+        result = await http_client.send_request("GET", "/empty", json={})
 
         assert result == {}
 
@@ -340,7 +340,7 @@ class TestHttpClient:
             "metadata": {"timestamp": "2023-01-01T00:00:00Z", "version": "1.0"},
         }
 
-        result = await http_client.send_request("POST", "/complex", complex_data)
+        result = await http_client.send_request("POST", "/complex", json=complex_data)
 
         assert result == {"processed": True}
 
