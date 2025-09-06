@@ -35,7 +35,7 @@ class GroupMiddleware(SubscriberMiddleware):
         self.fail_fast = fail_fast
 
     async def __call__(
-        self, call_next: Callable[[Any], Awaitable[Any]], event: Any
+        self, event: Any, call_next: Callable[[Any], Awaitable[Any]]
     ) -> Any:
         async def run_middleware(mw: SubscriberMiddleware):
             await mw(call_next, event)
@@ -98,14 +98,14 @@ class RetryMiddleware(SubscriberMiddleware):
         self.func = func
 
     async def __call__(
-        self, call_next: Callable[[Any], Awaitable[Any]], event: Any
+        self, event: Any, call_next: Callable[[Any], Awaitable[Any]]
     ) -> Any:
         return await self.func(call_next, event)
 
 
 class LoggingMiddleware(SubscriberMiddleware):
     async def __call__(
-        self, call_next: Callable[[Any], Awaitable[Any]], event: Any
+        self, event: Any, call_next: Callable[[Any], Awaitable[Any]]
     ) -> Any:
         logger.info(f"Event {event} processing started")
         try:

@@ -4,7 +4,7 @@ import aioboto3
 from typing import Dict, Any, Literal
 import json
 from pydantic import Field
-from midil.event.utils import get_region_from_queue_url
+from midil.event.utils import get_region_from_sqs_queue_url
 
 
 class SQSProducerEventConfig(BaseProducerConfig):
@@ -13,7 +13,7 @@ class SQSProducerEventConfig(BaseProducerConfig):
 
     @property
     def region(self) -> str:
-        return get_region_from_queue_url(self.queue_url)
+        return get_region_from_sqs_queue_url(self.queue_url)
 
 
 class SQSProducer(EventProducer):

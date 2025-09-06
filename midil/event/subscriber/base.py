@@ -119,7 +119,7 @@ class SubscriberMiddleware(ABC):
 
     @abstractmethod
     async def __call__(
-        self, call_next: Callable[[Any], Awaitable[Any]], event: Any
+        self, event: Any, call_next: Callable[[Any], Awaitable[Any]]
     ) -> Any:
         ...
 
@@ -175,7 +175,7 @@ class FunctionSubscriber(EventSubscriber):
         for mw in reversed(self.middlewares):
 
             async def wrapped(e, h=next_handler, m=mw):
-                return await m(h, e)
+                return await m(e, h)
 
             next_handler = wrapped
         await next_handler(event)

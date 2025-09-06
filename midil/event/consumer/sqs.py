@@ -13,7 +13,7 @@ import json
 from datetime import datetime
 from pydantic import model_validator
 from midil.utils.retry import exponential_backoff_async
-from midil.event.utils import get_region_from_queue_url
+from midil.event.utils import get_region_from_sqs_queue_url
 
 
 class SQSConsumerEventConfig(PullEventConsumerConfig):
@@ -40,11 +40,11 @@ class SQSConsumerEventConfig(PullEventConsumerConfig):
 
     @property
     def region(self) -> str:
-        return get_region_from_queue_url(self.queue_url)
+        return get_region_from_sqs_queue_url(self.queue_url)
 
     @property
     def dlq_region(self) -> Optional[str]:
-        return get_region_from_queue_url(self.dlq_url) if self.dlq_url else None
+        return get_region_from_sqs_queue_url(self.dlq_url) if self.dlq_url else None
 
     @model_validator(mode="after")
     def validate_config(self):

@@ -2,7 +2,7 @@ from urllib.parse import urlparse
 from loguru import logger
 
 
-def get_region_from_queue_url(queue_url: str) -> str:
+def get_region_from_sqs_queue_url(queue_url: str) -> str:
     try:
         host = urlparse(queue_url).netloc  # e.g. "sqs.us-east-1.amazonaws.com"
         parts = host.split(".")

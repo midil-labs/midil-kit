@@ -104,8 +104,6 @@ class EventBusFactory:
         consumer_cls = cls.CONSUMER_MAP.get(config.type)
         if not consumer_cls:
             raise ConsumerNotImplementedError(config.type)
-        if config.type == "webhook":
-            return consumer_cls(config)
         return consumer_cls(config)
 
     @classmethod
