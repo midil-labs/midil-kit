@@ -109,7 +109,7 @@ class CognitoJWTAuthorizer(AuthZProvider):
                         "sub",
                         "iss",
                         "aud",
-                    ],  # Require essential security claims
+                    ],  # essential security claims
                 },
             )
             logger.debug("Successfully verified JWT token", extra={"decoded": decoded})

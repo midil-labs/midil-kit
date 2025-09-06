@@ -2,7 +2,7 @@ from __future__ import annotations  # noqa: F401
 
 from typing import (
     Any,
-    Dict,
+    Mapping,
     List,
     Optional,
     TypeVar,
@@ -30,7 +30,7 @@ from pydantic import HttpUrl
 
 # Type Aliases
 MetaType: TypeAlias = Annotated[
-    Optional[Dict[str, Any]],
+    Optional[Mapping[str, Any]],
     Doc("A meta object containing non-standard information about the resource."),
 ]
 LinkType: TypeAlias = Annotated[
@@ -70,7 +70,7 @@ TypeStr = Annotated[
     Doc("The resource type."),
 ]
 
-AttributesT = TypeVar("AttributesT", bound=BaseModel)
+AttributesT = TypeVar("AttributesT", bound=Union[BaseModel, Mapping[str, Any]])
 
 # Constants
 JSONAPI_CONTENT_TYPE = "application/vnd.midil+json"
@@ -104,7 +104,7 @@ class _RelationshipsMixin(BaseModel):
     """
 
     relationships: Annotated[
-        Optional[Dict[str, "RelationshipObject"]],
+        Optional[Mapping[str, "RelationshipObject"]],
         Doc("A dictionary of relationship objects keyed by their names."),
     ] = None
 
@@ -432,6 +432,10 @@ class Document(
     links: Annotated[
         Optional[Links],
         Doc("Links related to the primary data."),
+    ] = None
+    included: Annotated[
+        Optional[List[ResourceObject[BaseModel | Mapping[str, Any]]]],
+        Doc("Included related resource objects."),
     ] = None
 
 

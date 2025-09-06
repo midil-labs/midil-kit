@@ -1,6 +1,7 @@
 """
 Tests for midil.auth.cognito.client_credentials_flow
 """
+
 import pytest
 import httpx
 import base64

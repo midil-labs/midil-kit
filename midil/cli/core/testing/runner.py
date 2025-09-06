@@ -17,7 +17,8 @@ class PytestRunner:
 
             if self.options.html_cov:
                 console.print(
-                    "📊 HTML coverage report will be generated in htmlcov/", style="cyan"
+                    "📊 HTML coverage report will be generated in htmlcov/",
+                    style="cyan",
                 )
 
             console.print(f"Running: {' '.join(command)}", style="dim")

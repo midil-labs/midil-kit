@@ -1,6 +1,7 @@
 """
 Pytest configuration and fixtures for midil tests.
 """
+
 import pytest
 import asyncio
 from unittest.mock import AsyncMock

@@ -4,7 +4,7 @@ import copy
 
 
 def _replace_json_with_jsonapi(
-    content: Optional[Dict[str, Any]]
+    content: Optional[Dict[str, Any]],
 ) -> Optional[Dict[str, Any]]:
     """
     Replace 'application/json' with Midil's JSON:API media type preserving schema.

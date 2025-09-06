@@ -1,6 +1,7 @@
 """
 Tests for midil.auth.cognito._exceptions
 """
+
 import pytest
 
 from midil.auth.exceptions import (

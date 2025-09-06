@@ -100,7 +100,7 @@ claims = await authorizer.verify("jwt-token")
 
 ```python
 from midil.event.dispatchers.polling import PollingEventDispatcher
-from midil.event.consumers.sqs import run_sqs_consumer
+from midil.event.consumer.sqs import run_sqs_consumer
 from midil.event.context import event_context
 
 # Event dispatcher

@@ -7,7 +7,7 @@ from midil.auth.cognito.jwt_authorizer import CognitoJWTAuthorizer
 from starlette.exceptions import HTTPException
 from starlette.responses import Response
 from midil.auth.exceptions import AuthorizationError
-from midil.config.settings import CognitoSettings
+from midil.settings import get_auth_settings
 
 
 class AuthContext:
@@ -178,8 +178,7 @@ class CognitoAuthMiddleware(BaseAuthMiddleware):
     """
 
     async def authorizer(self, request: Request) -> AuthZProvider:
-        cognito_settings = CognitoSettings()  # type: ignore
+        cognito_settings = get_auth_settings("cognito")
         return CognitoJWTAuthorizer(
-            user_pool_id=cognito_settings.user_pool_id,
-            region=cognito_settings.region,
+            user_pool_id=cognito_settings.user_pool_id, region=cognito_settings.region
         )
