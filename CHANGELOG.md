@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Remodeled Event Module
 
+
 ## v3.2.0 (2025-08-07)
 
 ### Features
@@ -45,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed parameter name mismatch in Async HTTP transport
 - Fix Invalid Header Padding Error in Auth Middleware
+
 
 ## v3.0.0 (2025-08-05)
 
