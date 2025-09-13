@@ -99,8 +99,8 @@ class TestGetCurrentEvent:
         try:
             current = get_current_event()
             assert current == test_context
-            assert current.id == "test-id"
-            assert current.event_type == "test.event"
+            assert current.id == "test-id"  # type: ignore
+            assert current.event_type == "test.event"  # type: ignore
         finally:
             _current_event_context.reset(token)
 
