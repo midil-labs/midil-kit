@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v3.4.0 (2025-09-06)
+
+### Improvement
+
+- Enhanced the Event Bus to allow configuration of multiple consumers and producers, providing greater flexibility in event-driven workflows.
+
+
+## Breaking Changes
+
+- The event bus now requires producers and consumers to be specified as mappings (dictionaries). Providing a single producer or consumer directly will result in an exception.
+
+
 ## v3.3.0 (2025-09-06)
 
 ### Features

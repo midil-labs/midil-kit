@@ -1,4 +1,4 @@
-from typing import Dict, Any, Callable, Awaitable, Coroutine, cast
+from typing import Dict, Any
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -12,11 +12,18 @@ from midil.event.subscriber.middlewares import (
     GroupMiddleware,
     RetryMiddleware,
 )
-from midil.utils.retry import exponential_backoff_async
-from midil.settings import EventSettings
+from midil.utils.retry import AsyncRetry
+from midil.settings import get_consumer_event_settings
 
-event_settings = EventSettings()
-config = EventConfig(consumer=event_settings.event.consumer)
+
+booking_settings = get_consumer_event_settings("booking")
+checkin_settings = get_consumer_event_settings("checkin")
+config = EventConfig(
+    consumers={
+        "booking": booking_settings,
+        "checkin": checkin_settings,
+    }
+)
 bus = EventBus(config)
 
 
@@ -36,28 +43,23 @@ app = FastAPI(lifespan=lifespan)
 # You can also just implmement your own _RetryCallable if you want.
 
 
-async def exponential_backoff_async_wrapper(
-    func: Callable[..., Awaitable[Any]], *args, **kwargs
-) -> Any:
-    func = cast(Callable[..., Coroutine[Any, Any, Any]], func)
-    wrapped = exponential_backoff_async()
-    retry_func: Callable[..., Coroutine[Any, Any, Any]] = wrapped(func)
-    return await retry_func(*args, **kwargs)
-
-
 ## subscribe to the event bus
+retry = AsyncRetry()
+
+
 @bus.subscriber(
+    target="checkin",
     middlewares=[
-        RetryMiddleware(exponential_backoff_async_wrapper),
+        RetryMiddleware(retry),
         GroupMiddleware([LoggingMiddleware()]),
-    ]
+    ],
 )
-async def handle_event(event: Dict[str, Any]):
+async def handle_checkin_event(event: Dict[str, Any]):
     print("Function subscriber : I got it")
 
 
-@bus.subscriber()
-async def handle_event_2(event: Dict[str, Any]):
+@bus.subscriber()  # subscribe to all consumers
+async def handle_all_events(event: Dict[str, Any]):
     print("Function subscriber 2: I also got it ")
 
 

@@ -1,8 +1,9 @@
-from typing import Any, Awaitable, Callable, Protocol, List, cast
+from typing import Any, Awaitable, Callable, List, cast
 import asyncio
 
 from loguru import logger
 from midil.event.subscriber.base import SubscriberMiddleware
+from midil.utils.retry import BaseAsyncRetryPolicy
 
 
 class GroupMiddleware(SubscriberMiddleware):
@@ -62,13 +63,6 @@ class GroupMiddleware(SubscriberMiddleware):
                     logger.error(f"[GroupMiddleware] Middleware error: {r}")
 
 
-class _RetryCallable(Protocol):
-    async def __call__(
-        self, func: Callable[..., Awaitable[Any]], *args, **kwargs
-    ) -> Any:
-        ...
-
-
 class RetryMiddleware(SubscriberMiddleware):
     """
     Middleware that applies a retry policy to the event handler.
@@ -94,7 +88,7 @@ class RetryMiddleware(SubscriberMiddleware):
         Any exception not handled by the retry policy will be propagated.
     """
 
-    def __init__(self, func: _RetryCallable):
+    def __init__(self, func: BaseAsyncRetryPolicy):
         self.func = func
 
     async def __call__(

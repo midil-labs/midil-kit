@@ -12,8 +12,11 @@ from typing import Dict, Any, Optional, Literal
 import json
 from datetime import datetime
 from pydantic import model_validator
-from midil.utils.retry import exponential_backoff_async
+from midil.utils.retry import AsyncRetry
 from midil.event.utils import get_region_from_sqs_queue_url
+
+
+retry_policy = AsyncRetry(retry_on_exceptions=(ClientError,))
 
 
 class SQSConsumerEventConfig(PullEventConsumerConfig):
@@ -145,13 +148,7 @@ class SQSConsumer(PullEventConsumer):
         except ClientError as e:
             logger.error(f"Error nacking message {message.id}: {e}")
 
-    @exponential_backoff_async(
-        max_attempts=5,
-        multiplier=2,
-        min_wait=10,
-        max_wait=60,
-        retry_on_exceptions=(ClientError,),
-    )
+    @retry_policy.retry
     async def _poll_loop(self) -> None:
         """
         Main loop for polling SQS and processing messages.

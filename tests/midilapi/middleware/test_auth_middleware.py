@@ -144,7 +144,7 @@ class TestCognitoAuthMiddleware:
     @patch.dict(
         "os.environ",
         {
-            "MIDIL__AUTH": '{"type": "cognito", "user_pool_id": "", "region": "", "client_id": ""}',
+            "MIDIL__AUTH": '{"type": "cognito", "user_pool_id": "test-pool-id", "region": "us-east-1", "client_id": "test-client-id"}',
         },
     )
     @patch("midil.midilapi.middleware.auth_middleware.CognitoJWTAuthorizer")
@@ -168,7 +168,9 @@ class TestCognitoAuthMiddleware:
 
         # Verify
         assert response.status_code == 200
-        mock_authorizer_class.assert_called_once_with(user_pool_id="", region="")
+        mock_authorizer_class.assert_called_once_with(
+            user_pool_id="test-pool-id", region="us-east-1"
+        )
 
     @pytest.mark.anyio
     async def test_missing_authorization_header(
