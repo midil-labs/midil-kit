@@ -3,15 +3,15 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 import uvicorn
 from pydantic import BaseModel, Field
-from midil.settings import EventSettings
+from midil.settings import get_producer_event_settings
 
 
 # Create config explicitly
-# config = SQSProducerEventConfig(queue_url="https://sqs.us-east-1.amazonaws.com/616782207790/booking-events-dev-v1")
+# config = SQSProducerEventConfig(queue_url="https://sqs.us-east-1.amazonaws.com/616782207790/example-queue")
 # producer = SQSProducer(config)
 
 # Alternative: Create config from environment variables
-producer_config = EventSettings().event.producer
+producer_config = get_producer_event_settings("booking")
 
 if not isinstance(producer_config, SQSProducerEventConfig):
     raise TypeError(

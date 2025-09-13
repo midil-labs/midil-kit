@@ -81,14 +81,13 @@ class TestGetCurrentEvent:
     """Tests for get_current_event function."""
 
     def test_get_current_event_when_not_set(self) -> None:
-        """Test get_current_event raises when no context is set."""
+        """Test get_current_event returns None when no context is set."""
         # Make sure we're testing in a clean context by using contextvars.copy_context()
         # to run the test in an isolated context
         ctx = contextvars.copy_context()
 
         def test_in_clean_context() -> None:
-            with pytest.raises(LookupError):
-                get_current_event()
+            assert get_current_event() is None
 
         ctx.run(test_in_clean_context)
 
@@ -100,8 +99,8 @@ class TestGetCurrentEvent:
         try:
             current = get_current_event()
             assert current == test_context
-            assert current.id == "test-id"
-            assert current.event_type == "test.event"
+            assert current.id == "test-id"  # type: ignore
+            assert current.event_type == "test.event"  # type: ignore
         finally:
             _current_event_context.reset(token)
 
@@ -179,8 +178,7 @@ class TestEventContextManager:
                 raise ValueError("Test exception")
 
         # Context should be cleaned up after exception
-        with pytest.raises(LookupError):
-            get_current_event()
+        assert get_current_event() is None
 
     async def test_event_context_cleanup_on_normal_exit(self) -> None:
         """Test that context is properly cleaned up on normal exit."""
@@ -190,8 +188,7 @@ class TestEventContextManager:
             assert current is not None
 
         # Context should be cleaned up after normal exit
-        with pytest.raises(LookupError):
-            get_current_event()
+        assert get_current_event() is None
 
     async def test_event_context_multiple_levels_cleanup(self) -> None:
         """Test cleanup with multiple nested levels."""
@@ -210,8 +207,7 @@ class TestEventContextManager:
             assert current == ctx1
 
         # After all exit, no context should be set
-        with pytest.raises(LookupError):
-            get_current_event()
+        assert get_current_event() is None
 
     async def test_event_context_concurrent_usage(self) -> None:
         """Test event context in concurrent scenarios."""
@@ -225,6 +221,7 @@ class TestEventContextManager:
                 await anyio.sleep(0.01)
 
                 current = get_current_event()
+                assert current is not None
                 results.append((worker_id, current.id, current.event_type))
 
         # Run multiple workers concurrently

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "midil-kit"
-version = "3.3.0"
+version = "3.4.0"
 description = "A Python SDK for backend systems development @midil.io"
 authors = ["Engr. Michael Kofi Armah <michael.armah@midil.io>"]
 readme = "README.md"

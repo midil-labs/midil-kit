@@ -9,7 +9,7 @@ from loguru import logger
 
 from typing import Awaitable
 from midil.event.subscriber.base import EventSubscriber
-from midil.event.exceptions import CriticalSubscriberError
+from midil.event.exceptions import RetryableEventError
 
 from threading import Lock
 from midil.utils.time import utcnow
@@ -82,7 +82,7 @@ class EventConsumer(ABC):
         with self._subscription_lock:
             self._subscribers.add(subscriber)
 
-    async def unsubscribe(self, subscriber: EventSubscriber) -> None:
+    def unsubscribe(self, subscriber: EventSubscriber) -> None:
         """
         Remove a handler (subscriber).
 
@@ -101,16 +101,17 @@ class EventConsumer(ABC):
             logger.warning("No subscribers registered, skipping event...")
             return
 
+        # async with event_context(self._config.type, id=str(event.id)) as ctx:
         tasks: List[Awaitable[Any]] = [
             subscriber(event) for subscriber in self._subscribers
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        if any(isinstance(r, CriticalSubscriberError) for r in results):
+        if any(isinstance(r, RetryableEventError) for r in results):
             requeue = True
             logger.error(
-                f"Some subscribers failed for event {getattr(event, 'id', None)}, requeue={requeue}"
+                f"Some subscribers failed for event {event.id}, requeue={requeue}"
             )
             return await self.nack(event, requeue=requeue)
 

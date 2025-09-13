@@ -32,7 +32,7 @@ class ConsumerNotImplementedError(ConsumerError):
 
     def __init__(self, type: str):
         self.type = type
-        super().__init__(f"Consumer type '{type}' is not implemented.")
+        ConsumerError.__init__(self, f"Consumer type '{type}' is not implemented.")
 
 
 class ConsumerStartError(ConsumerError):
@@ -51,9 +51,17 @@ class ConsumerStopError(ConsumerError):
     pass
 
 
-class CriticalSubscriberError(Exception):
+class RetryableEventError(Exception):
     """
-    Exception raised when a subscriber fails to process a message.
+    Exception raised when an error is retryable and the event processing should be retried.
+    """
+
+    pass
+
+
+class NonRetryableEventError(Exception):
+    """
+    Exception raised when an error is non-retryable and the event processing should be stopped.
     """
 
     pass
@@ -74,7 +82,7 @@ class ProducerNotImplementedError(ProducerError):
 
     def __init__(self, type: str):
         self.type = type
-        super().__init__(f"Producer type '{type}' is not implemented.")
+        ProducerError.__init__(self, f"Producer type '{type}' is not implemented.")
 
 
 class TransportNotImplementedError(BaseEventError):
@@ -84,4 +92,4 @@ class TransportNotImplementedError(BaseEventError):
 
     def __init__(self, type: str):
         self.type = type
-        super().__init__(f"Transport type '{type}' is not implemented.")
+        BaseEventError.__init__(self, f"Transport type '{type}' is not implemented.")

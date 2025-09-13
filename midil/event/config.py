@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import Annotated, Optional, Union, TypeAlias
+from typing import Annotated, Optional, Union, TypeAlias, Mapping
 
-from pydantic import BaseModel, Field, Json
+from pydantic import BaseModel, Field
 from midil.event.consumer.sqs import SQSConsumerEventConfig
 from midil.event.consumer.webhook import WebhookConsumerEventConfig
 from midil.event.producer.redis import RedisProducerEventConfig
 from midil.event.producer.sqs import SQSProducerEventConfig
+from enum import Enum
 
 
 ProducerConfig = Annotated[
@@ -18,15 +19,8 @@ ConsumerConfig = Annotated[
     Field(discriminator="type"),
 ]
 
-ProducerField: TypeAlias = Annotated[
-    Union[ProducerConfig, Json[ProducerConfig]],
-    Field(..., description="Event producer configuration"),
-]
-
-ConsumerField: TypeAlias = Annotated[
-    Union[ConsumerConfig, Json[ConsumerConfig]],
-    Field(..., description="Event consumer configuration"),
-]
+NamedProducersConfig: TypeAlias = Mapping[str, ProducerConfig]
+NamedConsumersConfig: TypeAlias = Mapping[str, ConsumerConfig]
 
 
 class EventConfig(BaseModel):
@@ -34,9 +28,23 @@ class EventConfig(BaseModel):
     Configuration model for the EventBus.
 
     Attributes:
-        producer: The configuration for the event producer (optional).
-        consumer: The configuration for the event consumer (optional).
+        producers: Named configurations for event producers (optional).
+        consumers: Named configurations for event consumers (optional).
     """
 
-    consumer: Optional[ConsumerField] = None
-    producer: Optional[ProducerField] = None
+    consumers: Optional[NamedConsumersConfig] = Field(
+        default=None, description="Named configurations for event consumers"
+    )
+    producers: Optional[NamedProducersConfig] = Field(
+        default=None, description="Named configurations for event producers"
+    )
+
+
+class EventConsumerType(str, Enum):
+    SQS = "sqs"
+    WEBHOOK = "webhook"
+
+
+class EventProducerType(str, Enum):
+    REDIS = "redis"
+    SQS = "sqs"
