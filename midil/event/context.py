@@ -31,12 +31,15 @@ _current_event_context: contextvars.ContextVar[EventContext] = contextvars.Conte
 )
 
 
-def get_current_event() -> EventContext:
+def get_current_event() -> Optional[EventContext]:
     """
     Get the current event context from the context variable.
     Raises a LookupError if no context is set.
     """
-    return _current_event_context.get()
+    try:
+        return _current_event_context.get()
+    except LookupError:
+        return None
 
 
 @asynccontextmanager

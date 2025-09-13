@@ -13,7 +13,6 @@ from typing import (
 )
 
 from loguru import logger
-from midil.event.context import get_current_event
 
 from tenacity import (
     AsyncRetrying,
@@ -75,11 +74,11 @@ class AsyncRetry(BaseAsyncRetryPolicy):
             reraise=True,
         ):
             with attempt:
-                context = get_current_event()
+                attempt_number = attempt.retry_state.attempt_number
                 logger.debug(
-                    f"Attempting to call '{func.__name__}' with arguments {args}, keyword arguments {kwargs}",
-                    context=str(context),
+                    f"Attempt {attempt_number}: calling '{func.__name__}' with args={args}, kwargs={kwargs}"
                 )
+
                 return await func(*args, **kwargs)
 
     def retry(self, func: Callable[..., Awaitable[Any]]) -> CoroutineCallable[P, R]:
