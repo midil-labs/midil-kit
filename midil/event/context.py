@@ -23,7 +23,7 @@ class EventContext:
 
 
 # Sentinel to distinguish between "not provided" and "explicit None"
-UNSET: Final = object()
+NOTSET: Final = object()
 
 # Context variable to hold the current EventContext
 _current_event_context: contextvars.ContextVar[EventContext] = contextvars.ContextVar(
@@ -42,7 +42,8 @@ def get_current_event() -> EventContext:
 @asynccontextmanager
 async def event_context(
     event_type: str,
-    parent_override: Union[Optional[EventContext], object] = UNSET,
+    id: Optional[str] = None,
+    parent_override: Union[Optional[EventContext], object] = NOTSET,
 ) -> AsyncGenerator[EventContext, None]:
     """
     Async context manager that sets a new EventContext for the current execution scope.
@@ -52,7 +53,7 @@ async def event_context(
                             Use None to explicitly set no parent.
     :return: Yields the new EventContext for the block
     """
-    if parent_override is UNSET:
+    if parent_override is NOTSET:
         try:
             parent = _current_event_context.get()
         except LookupError:
@@ -61,7 +62,7 @@ async def event_context(
         parent = cast(Optional[EventContext], parent_override)
 
     new_context = EventContext(
-        id=uuid4().hex,
+        id=id or uuid4().hex,
         event_type=event_type,
         parent=parent,
     )

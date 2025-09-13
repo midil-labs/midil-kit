@@ -199,7 +199,6 @@ class EventBus:
                 )
             await self.producers[target].publish(payload, metadata=metadata)
         else:
-            # Publish to all producers
             for producer in self.producers.values():
                 await producer.publish(payload, metadata=metadata)
 
@@ -226,7 +225,6 @@ class EventBus:
                 )
             self.consumers[target].subscribe(handler)
         else:
-            # Subscribe to all consumers
             for consumer in self.consumers.values():
                 consumer.subscribe(handler)
 

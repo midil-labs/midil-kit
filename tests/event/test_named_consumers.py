@@ -1,7 +1,3 @@
-"""
-Tests for named consumer configuration support.
-"""
-
 import pytest
 from unittest.mock import patch
 from midil.settings import (

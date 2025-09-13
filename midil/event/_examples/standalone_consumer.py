@@ -22,7 +22,7 @@ from midil.settings import get_consumer_event_settings
 # Then use: consumer_config = get_consumer_event_settings("main_queue")
 
 
-# Alternative: Create config explicitly (recommended for development)
+# Alternative: Create config explicitly
 # sqs_config = SQSConsumerEventConfig(
 #     queue_url="https://sqs.us-east-1.amazonaws.com/616782207790/booking-events-dev-v1",
 #     dlq_url=None,
