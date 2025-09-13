@@ -13,10 +13,17 @@ from midil.event.subscriber.middlewares import (
     RetryMiddleware,
 )
 from midil.utils.retry import exponential_backoff_async
-from midil.settings import EventSettings
+from midil.settings import get_consumer_event_settings
 
-event_settings = EventSettings()
-config = EventConfig(consumer=event_settings.event.consumer)
+
+booking_settings = get_consumer_event_settings("booking")
+checkin_settings = get_consumer_event_settings("checkin")
+config = EventConfig(
+    consumers={
+        "booking": booking_settings,
+        "checkin": checkin_settings,
+    }
+)
 bus = EventBus(config)
 
 
@@ -47,17 +54,18 @@ async def exponential_backoff_async_wrapper(
 
 ## subscribe to the event bus
 @bus.subscriber(
+    target="checkin",
     middlewares=[
         RetryMiddleware(exponential_backoff_async_wrapper),
         GroupMiddleware([LoggingMiddleware()]),
-    ]
+    ],
 )
-async def handle_event(event: Dict[str, Any]):
+async def handle_checkin_event(event: Dict[str, Any]):
     print("Function subscriber : I got it")
 
 
-@bus.subscriber()
-async def handle_event_2(event: Dict[str, Any]):
+@bus.subscriber()  # subscribe to all consumers
+async def handle_all_events(event: Dict[str, Any]):
     print("Function subscriber 2: I also got it ")
 
 

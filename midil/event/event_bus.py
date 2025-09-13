@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Literal
+from typing import Any, Dict, Optional, Mapping
 from pydantic_settings import BaseSettings
 
 from midil.event.consumer.strategies.pull import PullEventConsumer
@@ -27,11 +27,9 @@ from midil.event.config import (
     EventConfig,
     ProducerConfig,
     ConsumerConfig,
+    EventProducerType,
+    EventConsumerType,
 )
-
-
-SupportedProducers = Literal["redis", "sqs", "webhook"]
-SupportedConsumers = Literal["sqs", "webhook"]
 
 
 class EventBusFactory:
@@ -49,15 +47,15 @@ class EventBusFactory:
         create_config: Instantiates a configuration object for a given transport type.
     """
 
-    PRODUCER_MAP = {
+    _PRODUCER_MAP = {
         "redis": RedisProducer,
         "sqs": SQSProducer,
     }
-    CONSUMER_MAP = {
+    _CONSUMER_MAP = {
         "sqs": SQSConsumer,
         "webhook": WebhookConsumer,
     }
-    CONFIG_MAP = {
+    _CONFIG_MAP = {
         "sqs": {"producer": SQSProducerEventConfig, "consumer": SQSConsumerEventConfig},
         "webhook": {
             "consumer": WebhookConsumerEventConfig,
@@ -74,12 +72,12 @@ class EventBusFactory:
             config: The configuration object for the producer.
 
         Returns:
-            An instance of EventProducer.
+         An instance of EventProducer.
 
         Raises:
             ValueError: If the producer type is not supported.
         """
-        producer_cls = cls.PRODUCER_MAP.get(config.type)
+        producer_cls = cls._PRODUCER_MAP.get(config.type)
         if not producer_cls:
             raise ProducerNotImplementedError(config.type)
         return producer_cls(config)
@@ -101,14 +99,14 @@ class EventBusFactory:
             ValueError: If the consumer type is not supported.
         """
 
-        consumer_cls = cls.CONSUMER_MAP.get(config.type)
+        consumer_cls = cls._CONSUMER_MAP.get(config.type)
         if not consumer_cls:
             raise ConsumerNotImplementedError(config.type)
         return consumer_cls(config)
 
     @classmethod
     def create_config(
-        cls, transport: SupportedProducers | SupportedConsumers, **kwargs
+        cls, transport: EventProducerType | EventConsumerType, **kwargs
     ) -> BaseSettings:
         """
         Create a configuration object for the specified transport type.
@@ -123,7 +121,7 @@ class EventBusFactory:
         Raises:
             ValueError: If the transport type is not supported.
         """
-        config_map = cls.CONFIG_MAP.get(transport)
+        config_map = cls._CONFIG_MAP.get(transport)
         if not isinstance(config_map, dict):
             raise TransportNotImplementedError(transport)
         config_cls = config_map.get("producer") or config_map.get("consumer")
@@ -139,14 +137,14 @@ class EventBus:
 
     Attributes:
         producer: The event producer instance, if configured.
-        consumer: The event consumer instance, if configured.
+        consumers: Dictionary of named consumer instances, if configured.
 
     Methods:
         publish: Publish an event to the configured producer.
-        subscribe: Register an event subscriber/handler.
+        subscribe: Register an event subscriber/handler to one or all consumers.
         subscriber: Decorator to register a function as an event subscriber.
-        start: Start the event consumer.
-        stop: Stop the event consumer and close the producer.
+        start: Start all event consumers.
+        stop: Stop all event consumers and close the producer.
     """
 
     def __init__(
@@ -157,56 +155,93 @@ class EventBus:
         Initialize the EventBus with the given configuration.
 
         Args:
-            config: An EventBusConfig instance specifying producer and/or consumer configuration.
+            config: An EventBusConfig instance specifying producer and/or consumer configurations.
         """
         if config is None:
             config = EventConfig()
 
-        if config.producer:
-            self.producer = EventBusFactory.create_producer(config.producer)
-        if config.consumer:
-            self.consumer = EventBusFactory.create_consumer(config.consumer)
+        self.producers: Mapping[str, EventProducer] = {}
+        if config.producers:
+            for name, producer_config in config.producers.items():
+                self.producers[name] = EventBusFactory.create_producer(producer_config)
+
+        self.consumers: Mapping[str, PullEventConsumer | PushEventConsumer] = {}
+        if config.consumers:
+            for name, consumer_config in config.consumers.items():
+                self.consumers[name] = EventBusFactory.create_consumer(consumer_config)
 
     async def publish(
         self,
         payload: Dict[str, Any],
+        target: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
-        Publish an event to the configured producer.
+        Publish an event to a specific producer or all producers.
 
         Args:
             payload: The event payload as a dictionary.
+            target: Optional name of the specific producer to publish to.
+                         If None, publishes to all producers.
             metadata: Optional metadata to include with the event.
 
         Raises:
-            ValueError: If the producer is not configured.
+            ValueError: If no producers are configured or if the specified producer is not found.
         """
-        if not self.producer:
-            raise ValueError("Producer not configured")
-        await self.producer.publish(payload, metadata=metadata)
+        if not self.producers:
+            raise ValueError("No producers configured")
 
-    def subscribe(self, handler: EventSubscriber) -> None:
+        if target:
+            if target not in self.producers:
+                available_producers = list(self.producers.keys())
+                raise ValueError(
+                    f"Producer '{target}' not found. Available producers: {available_producers}"
+                )
+            await self.producers[target].publish(payload, metadata=metadata)
+        else:
+            # Publish to all producers
+            for producer in self.producers.values():
+                await producer.publish(payload, metadata=metadata)
+
+    def subscribe(self, handler: EventSubscriber, target: Optional[str] = None) -> None:
         """
-        Register an event subscriber/handler to receive events from the consumer.
+        Register an event subscriber/handler to receive events from one or all consumers.
 
         Args:
             handler: An instance of EventSubscriber.
+            target: Optional name of the specific consumer to subscribe to.
+                         If None, subscribes to all consumers.
 
         Raises:
-            ValueError: If the consumer is not configured.
+            ValueError: If no consumers are configured or if the specified consumer is not found.
         """
-        if not self.consumer:
-            raise ValueError("Consumer not configured")
-        self.consumer.subscribe(handler)
+        if not self.consumers:
+            raise ValueError("No consumers configured")
+
+        if target:
+            if target not in self.consumers:
+                available_consumers = list(self.consumers.keys())
+                raise ValueError(
+                    f"Consumer '{target}' not found. Available consumers: {available_consumers}"
+                )
+            self.consumers[target].subscribe(handler)
+        else:
+            # Subscribe to all consumers
+            for consumer in self.consumers.values():
+                consumer.subscribe(handler)
 
     def subscriber(
-        self, middlewares: Optional[list[SubscriberMiddleware]] = None, **kwargs
+        self,
+        target: Optional[str] = None,
+        middlewares: Optional[list[SubscriberMiddleware]] = None,
+        **kwargs,
     ):
         """
         Decorator to register a function as an event subscriber.
 
         Args:
+            target: Optional name of the specific consumer to subscribe to.
+                         If None, subscribes to all consumers.
             middlewares: Optional list of SubscriberMiddleware to apply to the subscriber.
             **kwargs: Additional keyword arguments passed to FunctionSubscriber.
 
@@ -215,27 +250,33 @@ class EventBus:
         """
 
         def decorator(func):
-            self.subscribe(FunctionSubscriber(func, middlewares=middlewares, **kwargs))
+            self.subscribe(
+                FunctionSubscriber(func, middlewares=middlewares, **kwargs),
+                target=target,
+            )
             return func
 
         return decorator
 
     async def start(self) -> None:
         """
-        Start the event consumer to begin receiving and dispatching events.
+        Start all event consumers to begin receiving and dispatching events.
 
         Raises:
-            ValueError: If the consumer is not configured.
+            ValueError: If no consumers are configured.
         """
-        if not self.consumer:
-            raise ValueError("Consumer not configured")
-        await self.consumer.start()
+        if not self.consumers:
+            raise ValueError("No consumers configured")
+
+        for _, consumer in self.consumers.items():
+            await consumer.start()
 
     async def stop(self) -> None:
         """
-        Stop the event consumer and close the event producer, performing any necessary cleanup.
+        Stop all event consumers and close the event producer, performing any necessary cleanup.
         """
-        if self.consumer:
-            await self.consumer.stop()
-        if hasattr(self, "producer") and self.producer:
-            await self.producer.close()
+        for _, consumer in self.consumers.items():
+            await consumer.stop()
+
+        for _, producer in self.producers.items():
+            await producer.close()

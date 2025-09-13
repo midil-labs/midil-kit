@@ -5,7 +5,7 @@ from pydantic import Field
 LogLevelType = Literal["ERROR", "WARNING", "INFO", "DEBUG", "CRITICAL"]
 
 
-class MidilApiConfig(BaseModel):
+class MidilApiConfig(BaseModel, extra="allow"):
     database_uri: Annotated[
         str, Field(..., description="Database URI or connection string.")
     ]

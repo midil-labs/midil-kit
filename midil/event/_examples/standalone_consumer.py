@@ -5,20 +5,21 @@ import uvicorn
 from typing import Dict, Any
 from midil.event.subscriber.base import FunctionSubscriber
 from loguru import logger
-from midil.settings import EventSettings
+from midil.settings import get_consumer_event_settings
 
 
 # Load config from environment variables or .env file (recommended for production):
-# Set these environment variables before running:
-#   export TYPE=sqs
-#   export QUEUE_URL=https://sqs.us-east-1.amazonaws.com/616782207790/booking-events-dev-v1
-#   export DLQ_URL=...
-#   export VISIBILITY_TIMEOUT=30
-#   export MAX_NUMBER_OF_MESSAGES=10
-#   export WAIT_TIME_SECONDS=20
-#   export POLL_INTERVAL=0.1
-#   export MAX_CONCURRENT_MESSAGES=10
-# Then use: consumer_config = EventSettings().event.consumer
+#
+# Named Consumer Configuration:
+#   MIDIL__EVENT__CONSUMERS__BOOKING__TYPE=sqs
+#   MIDIL__EVENT__CONSUMERS__BOOKING__QUEUE_URL=https://sqs.us-east-1.amazonaws.com/616782207790/booking-events-dev-v1
+#   MIDIL__EVENT__CONSUMERS__BOOKING__DLQ_URL=...
+#   MIDIL__EVENT__CONSUMERS__BOOKING__VISIBILITY_TIMEOUT=30
+#   MIDIL__EVENT__CONSUMERS__BOOKING__MAX_NUMBER_OF_MESSAGES=10
+#   MIDIL__EVENT__CONSUMERS__BOOKING__WAIT_TIME_SECONDS=20
+#   MIDIL__EVENT__CONSUMERS__BOOKING__POLL_INTERVAL=0.1
+#   MIDIL__EVENT__CONSUMERS__BOOKING__MAX_CONCURRENT_MESSAGES=10
+# Then use: consumer_config = get_consumer_event_settings("main_queue")
 
 
 # Alternative: Create config explicitly (recommended for development)
@@ -33,14 +34,12 @@ from midil.settings import EventSettings
 # )
 
 
-event_settings = EventSettings()
-consumer_config = event_settings.event.consumer
+# Get the consumer configuration by name
+consumer_config = get_consumer_event_settings("booking")
 
 # Ensure the config is of the correct type (SQSConsumerEventConfig)
 if not isinstance(consumer_config, SQSConsumerEventConfig):
-    raise TypeError(
-        "event_settings.event.consumer must be an instance of SQSConsumerEventConfig"
-    )
+    raise TypeError("Consumer 'booking' must be an instance of SQSConsumerEventConfig")
 
 consumer = SQSConsumer(consumer_config)
 

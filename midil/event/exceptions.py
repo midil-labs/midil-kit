@@ -32,7 +32,7 @@ class ConsumerNotImplementedError(ConsumerError):
 
     def __init__(self, type: str):
         self.type = type
-        super().__init__(f"Consumer type '{type}' is not implemented.")
+        ConsumerError.__init__(self, f"Consumer type '{type}' is not implemented.")
 
 
 class ConsumerStartError(ConsumerError):
@@ -74,7 +74,7 @@ class ProducerNotImplementedError(ProducerError):
 
     def __init__(self, type: str):
         self.type = type
-        super().__init__(f"Producer type '{type}' is not implemented.")
+        ProducerError.__init__(self, f"Producer type '{type}' is not implemented.")
 
 
 class TransportNotImplementedError(BaseEventError):
@@ -84,4 +84,4 @@ class TransportNotImplementedError(BaseEventError):
 
     def __init__(self, type: str):
         self.type = type
-        super().__init__(f"Transport type '{type}' is not implemented.")
+        BaseEventError.__init__(self, f"Transport type '{type}' is not implemented.")
