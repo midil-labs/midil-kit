@@ -51,9 +51,17 @@ class ConsumerStopError(ConsumerError):
     pass
 
 
-class CriticalSubscriberError(Exception):
+class RetryableEventError(Exception):
     """
-    Exception raised when a subscriber fails to process a message.
+    Exception raised when an error is retryable and the event processing should be retried.
+    """
+
+    pass
+
+
+class NonRetryableEventError(Exception):
+    """
+    Exception raised when an error is non-retryable and the event processing should be stopped.
     """
 
     pass

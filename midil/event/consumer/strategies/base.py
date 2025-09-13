@@ -9,7 +9,7 @@ from loguru import logger
 
 from typing import Awaitable
 from midil.event.subscriber.base import EventSubscriber
-from midil.event.exceptions import CriticalSubscriberError
+from midil.event.exceptions import RetryableEventError
 
 from threading import Lock
 from midil.utils.time import utcnow
@@ -109,7 +109,7 @@ class EventConsumer(ABC):
 
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
-            if any(isinstance(r, CriticalSubscriberError) for r in results):
+            if any(isinstance(r, RetryableEventError) for r in results):
                 requeue = True
                 logger.error(
                     f"Some subscribers failed for event {ctx.id}, requeue={requeue}"
