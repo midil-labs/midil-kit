@@ -55,8 +55,8 @@ class TestEventContext:
         child = EventContext(id="c", event_type="child.event", parent=parent)
 
         assert child.parent == parent
-        assert child.parent.parent == grandparent
-        assert child.parent.parent.parent is None
+        assert child.parent.parent == grandparent  # type: ignore
+        assert child.parent.parent.parent is None  # type: ignore
 
     def test_context_equality(self) -> None:
         """Test EventContext equality comparison."""
