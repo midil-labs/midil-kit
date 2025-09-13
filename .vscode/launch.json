@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "console": "integratedTerminal",
+        "cwd": "${workspaceFolder}",
+        "envFile": "${workspaceFolder}/midil/.env",
+        "justMyCode": true,
+        "name": "Run event bus example",
+        "program": "${workspaceFolder}/midil/event/_examples/event_bus.py",
+        "python": "${workspaceFolder}/.venv/bin/python",
+        "request": "launch",
+        "type": "debugpy",
+      }
+    ]
+}

@@ -9,7 +9,6 @@ from midil.event.config import EventConfig
 from midil.event.event_bus import EventBus
 from midil.event.subscriber.middlewares import (
     LoggingMiddleware,
-    GroupMiddleware,
     RetryMiddleware,
 )
 from midil.utils.retry import AsyncRetry
@@ -38,10 +37,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# Retry Middleware expects a callable, so we create a convenience function
-# to wrap the exponential_backoff_async which is a decorator with the retry logic.
-# You can also just implmement your own _RetryCallable if you want.
-
 
 ## subscribe to the event bus
 retry = AsyncRetry()
@@ -49,18 +44,15 @@ retry = AsyncRetry()
 
 @bus.subscriber(
     target="checkin",
-    middlewares=[
-        RetryMiddleware(retry),
-        GroupMiddleware([LoggingMiddleware()]),
-    ],
+    middlewares=[RetryMiddleware(retry), LoggingMiddleware()],
 )
 async def handle_checkin_event(event: Dict[str, Any]):
-    print("Function subscriber : I got it")
+    print("Function subscriber : I got it", event)
 
 
-@bus.subscriber()  # subscribe to all consumers
-async def handle_all_events(event: Dict[str, Any]):
-    print("Function subscriber 2: I also got it ")
+# @bus.subscriber()  # subscribe to all consumers
+# async def handle_all_events(event: Dict[str, Any]):
+#     print("Function subscriber 2: I also got it ", event)
 
 
 if __name__ == "__main__":

@@ -13,7 +13,6 @@ from midil.event.exceptions import RetryableEventError
 
 from threading import Lock
 from midil.utils.time import utcnow
-from midil.event.context import event_context
 
 
 class Message(AllowExtraFieldsModel):
@@ -83,7 +82,7 @@ class EventConsumer(ABC):
         with self._subscription_lock:
             self._subscribers.add(subscriber)
 
-    async def unsubscribe(self, subscriber: EventSubscriber) -> None:
+    def unsubscribe(self, subscriber: EventSubscriber) -> None:
         """
         Remove a handler (subscriber).
 
@@ -102,21 +101,21 @@ class EventConsumer(ABC):
             logger.warning("No subscribers registered, skipping event...")
             return
 
-        async with event_context(self._config.type, id=str(event.id)) as ctx:
-            tasks: List[Awaitable[Any]] = [
-                subscriber(event) for subscriber in self._subscribers
-            ]
+        # async with event_context(self._config.type, id=str(event.id)) as ctx:
+        tasks: List[Awaitable[Any]] = [
+            subscriber(event) for subscriber in self._subscribers
+        ]
 
-            results = await asyncio.gather(*tasks, return_exceptions=True)
+        results = await asyncio.gather(*tasks, return_exceptions=True)
 
-            if any(isinstance(r, RetryableEventError) for r in results):
-                requeue = True
-                logger.error(
-                    f"Some subscribers failed for event {ctx.id}, requeue={requeue}"
-                )
-                return await self.nack(event, requeue=requeue)
+        if any(isinstance(r, RetryableEventError) for r in results):
+            requeue = True
+            logger.error(
+                f"Some subscribers failed for event {event.id}, requeue={requeue}"
+            )
+            return await self.nack(event, requeue=requeue)
 
-            return await self.ack(event)
+        return await self.ack(event)
 
     @abstractmethod
     async def start(self) -> None:

@@ -48,4 +48,3 @@ class EventConsumerType(str, Enum):
 class EventProducerType(str, Enum):
     REDIS = "redis"
     SQS = "sqs"
-    WEBHOOK = "webhook"

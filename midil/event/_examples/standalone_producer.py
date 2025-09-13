@@ -11,7 +11,7 @@ from midil.settings import get_producer_event_settings
 # producer = SQSProducer(config)
 
 # Alternative: Create config from environment variables
-producer_config = get_producer_event_settings("sqs")
+producer_config = get_producer_event_settings("booking")
 
 if not isinstance(producer_config, SQSProducerEventConfig):
     raise TypeError(

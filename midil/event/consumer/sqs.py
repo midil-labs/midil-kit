@@ -11,7 +11,6 @@ from botocore.exceptions import ClientError
 from typing import Dict, Any, Optional, Literal
 import json
 from datetime import datetime
-from pydantic import model_validator
 from midil.utils.retry import AsyncRetry
 from midil.event.utils import get_region_from_sqs_queue_url
 
@@ -37,9 +36,6 @@ class SQSConsumerEventConfig(PullEventConsumerConfig):
     poll_interval: float = Field(
         default=0.1, description="Interval between polls if no messages", ge=0.0
     )
-    max_concurrent_messages: int = Field(
-        default=10, description="Max concurrent messages to process", ge=1
-    )
 
     @property
     def region(self) -> str:
@@ -48,19 +44,6 @@ class SQSConsumerEventConfig(PullEventConsumerConfig):
     @property
     def dlq_region(self) -> Optional[str]:
         return get_region_from_sqs_queue_url(self.dlq_url) if self.dlq_url else None
-
-    @model_validator(mode="after")
-    def validate_config(self):
-        """
-        max_concurrent_messages should be >= max_number_of_messages.
-        Reason: you don’t want to fetch more messages than you are capable of handling concurrently.
-        Otherwise, you risk unacked messages sitting too long (visibility timeout issues in SQS/RabbitMQ/etc.).
-        """
-        if self.max_number_of_messages > self.max_concurrent_messages:
-            raise ValueError(
-                "max_number_of_messages cannot exceed max_concurrent_messages, reason: you don't want to fetch more messages than you are capable of handling concurrently. Otherwise, you risk unacked messages sitting too long (visibility timeout issues in SQS/RabbitMQ/etc.)."
-            )
-        return self
 
 
 class SQSConsumer(PullEventConsumer):
@@ -71,7 +54,6 @@ class SQSConsumer(PullEventConsumer):
         super().__init__(config)
         self._config: SQSConsumerEventConfig = config
         self.session = aioboto3.Session()
-        self._semaphore = asyncio.Semaphore(int(config.max_concurrent_messages))
 
     async def ack(self, message: Message) -> None:
         """
@@ -148,7 +130,7 @@ class SQSConsumer(PullEventConsumer):
         except ClientError as e:
             logger.error(f"Error nacking message {message.id}: {e}")
 
-    @retry_policy.retry
+    # @retry_policy.retry
     async def _poll_loop(self) -> None:
         """
         Main loop for polling SQS and processing messages.
@@ -173,8 +155,9 @@ class SQSConsumer(PullEventConsumer):
                         logger.debug(
                             f"Found {len(messages)} message(s), dispatching..."
                         )
-                        tasks = [self._process_message(msg) for msg in messages]
-                        await asyncio.gather(*tasks)
+                        async with asyncio.TaskGroup() as tg:
+                            for msg in messages:
+                                tg.create_task(self._process_message(msg))
                     else:
                         await asyncio.sleep(self._config.poll_interval)
                 except ClientError as e:
@@ -187,44 +170,43 @@ class SQSConsumer(PullEventConsumer):
         """
         Parse and dispatch a single message to subscribers.
         """
-        async with self._semaphore:
+        try:
+            event = None
             try:
-                event = None
-                try:
-                    body = json.loads(message["Body"])
-                except json.JSONDecodeError:
-                    body = message["Body"]
+                body = json.loads(message["Body"])
+            except json.JSONDecodeError:
+                body = message["Body"]
 
-                # Convert SentTimestamp to datetime
-                sent_timestamp = message.get("Attributes", {}).get("SentTimestamp")
-                timestamp = (
-                    datetime.fromtimestamp(int(sent_timestamp) / 1000)
-                    if sent_timestamp
-                    else None
+            # Convert SentTimestamp to datetime
+            sent_timestamp = message.get("Attributes", {}).get("SentTimestamp")
+            timestamp = (
+                datetime.fromtimestamp(int(sent_timestamp) / 1000)
+                if sent_timestamp
+                else None
+            )
+
+            # Combine Attributes and MessageAttributes for metadata
+            metadata = {
+                **message.get("Attributes", {}),
+                **message.get("MessageAttributes", {}),
+            }
+
+            event = Message(
+                id=message["MessageId"],
+                body=body,
+                timestamp=timestamp,
+                ack_handle=message["ReceiptHandle"],
+                metadata=metadata,
+            )
+            await self.dispatch(event)
+
+        except Exception as e:
+            if event:
+                logger.error(
+                    f"Nacking message {message.get('MessageId')} due to error: {e}"
                 )
-
-                # Combine Attributes and MessageAttributes for metadata
-                metadata = {
-                    **message.get("Attributes", {}),
-                    **message.get("MessageAttributes", {}),
-                }
-
-                event = Message(
-                    id=message["MessageId"],
-                    body=body,
-                    timestamp=timestamp,
-                    ack_handle=message["ReceiptHandle"],
-                    metadata=metadata,
-                )
-                await self.dispatch(event)
-
-            except Exception as e:
-                if event:
-                    logger.error(
-                        f"Nacking message {message.get('MessageId')} due to error: {e}"
-                    )
-                    await self.nack(event, requeue=True)
-                logger.warning(
-                    f"Skipping nack message {message.get('MessageId')} because no event was found: {e}"
-                )
-                raise e
+                await self.nack(event, requeue=True)
+            logger.warning(
+                f"Skipping nack message {message.get('MessageId')} because no event was found: {e}"
+            )
+            raise e
