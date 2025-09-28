@@ -22,7 +22,7 @@ def exception_deserializer(record: "loguru.Record") -> None:
 
 def setup_logger(level: LogLevelType, enable_http_logging: bool) -> "Logger":
     """Setup application logger with configured handlers."""
-    config = LoggerConfig(level=level, enable_http_logging=enable_http_logging)
+    config = LoggerConfig(log_level=level, enable_http_logging=enable_http_logging)
     factory = LoggerFactory(config)
 
     factory.add_handler(
