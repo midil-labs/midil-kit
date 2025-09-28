@@ -73,17 +73,3 @@ class PostGenProjectManager:
     def run(self) -> None:
         for hook in self.hooks:
             hook.execute()
-
-
-def main() -> None:
-    hooks = [
-        ConditionalFileRemover("{{ cookiecutter.include_docker }}"),
-        DirectoryCreator(),
-        FileCreator(),
-    ]
-    manager = PostGenProjectManager(hooks)
-    manager.run()
-
-
-if __name__ == "__main__":
-    main()
