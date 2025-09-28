@@ -62,21 +62,31 @@ class MidilSettings(_BaseSettings):
 class SettingsError(Exception):
     """Base exception for settings-related errors."""
 
+    ...
+
 
 class AuthSettingsError(SettingsError):
     """Exception for authentication settings errors."""
+
+    ...
 
 
 class EventSettingsError(SettingsError):
     """Exception for event settings errors."""
 
+    ...
+
 
 class ApiSettingsError(SettingsError):
     """Exception for API settings errors."""
 
+    ...
+
 
 class LoggerSettingsError(SettingsError):
     """Exception for logger settings errors."""
+
+    ...
 
 
 @lru_cache(maxsize=1)
