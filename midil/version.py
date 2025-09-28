@@ -1,4 +1,5 @@
-from midil.cli.core.pyproject import PyProject
+from midil.utils.pyproject import PyProject
+
 
 try:
     from importlib.metadata import version

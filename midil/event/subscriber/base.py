@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Awaitable, Callable, Optional
+from midil.event.message import Message
 
 
 class EventSubscriber(ABC):
@@ -22,7 +23,7 @@ class EventSubscriber(ABC):
     """
 
     @abstractmethod
-    async def handle(self, event: Any) -> None:
+    async def handle(self, event: Message) -> None:
         """
         Handle an incoming event.
 
@@ -32,33 +33,31 @@ class EventSubscriber(ABC):
         """
         ...
 
-    async def authorize(self, event: Any) -> bool:
+    async def authorize(self, event: Message) -> bool:
         """
         Authorize the event.
         """
         return True
 
-    async def should_handle(self, event: Any) -> bool:
+    async def should_handle(self, event: Message) -> bool:
         """
         Check if the event should be handled. e.g Validate the event payload.
         """
         return True
 
-    async def on_error(
-        self, event: Any, error: Exception, context: Optional[str] = None
-    ) -> None:
+    async def on_error(self, event: Any, error: Exception) -> None:
         """
         Handle an error that occurred while handling the event.
         """
         pass
 
-    async def on_success(self, event: Any) -> None:
+    async def on_success(self, event: Message) -> None:
         """
         Handle a successful event.
         """
         pass
 
-    async def __call__(self, event: Any) -> None:
+    async def __call__(self, event: Message) -> None:
         """
         Invoke the subscriber for the given event.
 
@@ -119,7 +118,7 @@ class SubscriberMiddleware(ABC):
 
     @abstractmethod
     async def __call__(
-        self, event: Any, call_next: Callable[[Any], Awaitable[Any]]
+        self, event: Message, call_next: Callable[[Message], Awaitable[Any]]
     ) -> Any:
         ...
 
@@ -163,7 +162,7 @@ class FunctionSubscriber(EventSubscriber):
         self.handler = handler
         self.middlewares = middlewares or []
 
-    async def handle(self, event: Any) -> None:
+    async def handle(self, event: Message) -> None:
         """
         Handle an event by applying all middlewares to the handler.
 

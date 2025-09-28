@@ -5,25 +5,18 @@ from fastapi import FastAPI
 
 import uvicorn
 
-from midil.event.config import EventConfig
 from midil.event.event_bus import EventBus
-from midil.event.subscriber.middlewares import (
-    LoggingMiddleware,
-    RetryMiddleware,
-)
 from midil.utils.retry import AsyncRetry
-from midil.settings import get_consumer_event_settings
 
-
-booking_settings = get_consumer_event_settings("booking")
-checkin_settings = get_consumer_event_settings("checkin")
-config = EventConfig(
-    consumers={
-        "booking": booking_settings,
-        "checkin": checkin_settings,
-    }
-)
-bus = EventBus(config)
+# booking_settings = get_consumer_event_settings("booking")
+# checkin_settings = get_consumer_event_settings("checkin")
+# config = EventConfig(
+#     consumers={
+#         # "booking": booking_settings,
+#         "checkin": checkin_settings,
+#     }
+# )
+bus = EventBus()
 
 
 @asynccontextmanager
@@ -44,7 +37,7 @@ retry = AsyncRetry()
 
 @bus.subscriber(
     target="checkin",
-    middlewares=[RetryMiddleware(retry), LoggingMiddleware()],
+    # middlewares=[LoggingMiddleware()],
 )
 async def handle_checkin_event(event: Dict[str, Any]):
     print("Function subscriber : I got it", event)

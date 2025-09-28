@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict
 
 from pydantic import BaseModel, Field
+from midil.event.message import MessageBody
 
 
 class BaseProducerConfig(BaseModel):
@@ -30,7 +30,7 @@ class EventProducer(ABC):
     """
 
     @abstractmethod
-    async def publish(self, payload: Dict[str, Any], **kwargs) -> None:
+    async def publish(self, payload: MessageBody, **kwargs) -> None:
         """
         Asynchronously publish an event to the event backend.
 

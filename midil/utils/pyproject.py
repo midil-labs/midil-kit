@@ -27,7 +27,9 @@ class PyProject:
         try:
             with open(self.path, "rb") as toml_file:
                 pyproject_data = tomli.load(toml_file)
-                self._data = pyproject_data.get("tool", {}).get("poetry", {})
+                self._data = pyproject_data.get("tool", {}).get(
+                    "poetry", {}
+                ) or pyproject_data.get("project", {})
         except FileNotFoundError:
             self._data = None
 

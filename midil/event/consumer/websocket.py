@@ -3,7 +3,7 @@ from midil.event.consumer.strategies.push import (
     PushEventConsumer,
     PushEventConsumerConfig,
 )
-from midil.event.consumer.strategies.base import Message
+from midil.event.message import Message
 from loguru import logger
 from typing import List
 

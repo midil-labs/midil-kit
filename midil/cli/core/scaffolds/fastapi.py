@@ -40,9 +40,12 @@ class FastAPIServiceScaffolder(ProjectScaffolder):
                 no_input=self.no_user_input,
                 skip_if_file_exists=True,
             )
+            service_name = Path(result).name
+
             console.print(f"✅ Project scaffolded at {result}", style="green")
-            console.print("\n🎉 Your MIDIL project is ready!", style="bold blue")
+            console.print(
+                f"\n🎉 Your {service_name} service is ready!", style="bold blue"
+            )
             console.print("📖 Check the README.md for next steps", style="cyan")
         except Exception as e:
-            console.print(f"❌ Error creating project: {e}", style="red")
-            raise
+            console.print(f"❌ Failed to create project: {e}", style="red")

@@ -23,7 +23,7 @@ class AllowExtraFieldsModel(BaseModel):
     def __init_subclass__(cls, **kwargs):
         BaseModel.__init_subclass__(**kwargs)
         if getattr(cls, "model_config", {}).get("extra") != Extra.ALLOW.value:
-            raise TypeError("extra must be 'allow' in all subclasses")
+            raise TypeError(f"{cls.__name__}: 'extra' must be 'allow'")
 
 
 class IgnoreExtraFieldsModel(BaseModel):
@@ -32,4 +32,4 @@ class IgnoreExtraFieldsModel(BaseModel):
     def __init_subclass__(cls, **kwargs):
         BaseModel.__init_subclass__(**kwargs)
         if getattr(cls, "model_config", {}).get("extra") != Extra.IGNORE.value:
-            raise TypeError("extra must be 'ignore' in all subclasses")
+            raise TypeError(f"{cls.__name__}: 'extra' must be 'ignore'")

@@ -1,8 +1,8 @@
-from enum import Enum
 from typing import Dict, Optional, Literal, TypeVar, Any
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from midil.auth.config import AuthConfig
 from midil.midilapi.config import MidilApiConfig
+from midil.logger.config import LoggerConfig
 from midil.event.config import (
     EventConfig,
     ConsumerConfig,
@@ -11,7 +11,7 @@ from midil.event.config import (
     EventProducerType,
 )
 from functools import lru_cache
-from loguru import logger
+
 
 T = TypeVar("T", bound=BaseSettings)
 
@@ -31,6 +31,7 @@ class MIDILSettings(_BaseSettings):
     api: Optional[MidilApiConfig] = None
     auth: Optional[AuthConfig] = None
     event: Optional[EventConfig] = None
+    logger: Optional[LoggerConfig] = None
 
     def model_post_init(self, __context: Any) -> None:
         """Post-initialization validation of settings."""
@@ -57,14 +58,13 @@ class ApiSettingsError(SettingsError):
     """Exception for API settings errors."""
 
 
-class AuthType(str, Enum):
-    COGNITO = "cognito"
+class LoggerSettingsError(SettingsError):
+    """Exception for logger settings errors."""
 
 
 @lru_cache(maxsize=1)
 def get_settings() -> MIDILSettings:
     """Get the singleton MIDILSettings instance, cached for performance."""
-    logger.info("Loading MIDIL settings from environment or .env file")
     settings = MIDILSettings()
     return settings
 
@@ -129,6 +129,7 @@ def get_consumer_event_settings(name: str) -> ConsumerConfig:
     Example:
         >>> consumer = get_consumer_event_settings("sqs_consumer")
     """
+    name = name.lower()
     consumers = get_event_settings().consumers
     if consumers is None:
         raise EventSettingsError(
@@ -157,6 +158,7 @@ def get_producer_event_settings(name: str) -> ProducerConfig:
     Example:
         >>> producer = get_producer_event_settings("sqs_producer")
     """
+    name = name.lower()
     producers = get_event_settings().producers
     if producers is None:
         raise EventSettingsError(
@@ -270,3 +272,13 @@ def list_available_producers() -> Dict[str, str]:
         if producers
         else {}
     )
+
+
+def get_logger_settings() -> LoggerConfig:
+    """Get logger settings, raising an error if not configured."""
+    settings = get_settings()
+    if settings.logger is None:
+        raise LoggerSettingsError(
+            "Logger settings are not configured. Ensure MIDIL__LOGGER is set in the .env file."
+        )
+    return settings.logger

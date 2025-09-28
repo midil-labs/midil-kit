@@ -160,12 +160,31 @@ create-release: ## Create a new release with version
 
 release-tag: ## Create a release tag and push to trigger GitHub Action
 	@read -p "Enter version (e.g., 0.2.0): " version; \
-	git tag v$$version; \
-	git push origin v$$version; \
-	echo "Tag v$$version created and pushed. GitHub Action will automatically release to PyPI."
+	git tag v$version; \
+	git push origin v$version; \
+	echo "Tag v$version created and pushed. GitHub Action will automatically release to PyPI."
 
 test-release: ## Create a test release tag for TestPyPI
 	@read -p "Enter version (e.g., 0.2.0-alpha.1): " version; \
-	git tag v$$version; \
-	git push origin v$$version; \
-	echo "Test tag v$$version created and pushed. GitHub Action will automatically release to TestPyPI."
+	git tag v$version; \
+	git push origin v$version; \
+	echo "Test tag v$version created and pushed. GitHub Action will automatically release to TestPyPI."
+
+# Documentation commands
+docs-install: ## Install documentation dependencies
+	cd docs && npm install
+
+docs-start: ## Start documentation development server
+	cd docs && npm start
+
+docs-build: ## Build documentation for production
+	cd docs && npm run build
+
+docs-serve: ## Serve built documentation locally
+	cd docs && npm run serve
+
+docs-deploy: ## Deploy documentation to GitHub Pages
+	cd docs && npm run deploy
+
+docs-clear: ## Clear documentation cache
+	cd docs && npm run clear

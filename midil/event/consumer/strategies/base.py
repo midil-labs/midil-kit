@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Annotated, Union, Optional, Sequence, Mapping
-from midil.jsonapi.config import AllowExtraFieldsModel
-from typing import Dict, Any, List, Set
-from datetime import datetime
+from typing import Annotated, Optional
+from typing import Any, List, Set
 from pydantic import BaseModel, Field
 import asyncio
 from loguru import logger
@@ -12,26 +10,13 @@ from midil.event.subscriber.base import EventSubscriber
 from midil.event.exceptions import RetryableEventError
 
 from threading import Lock
-from midil.utils.time import utcnow
+from midil.event.message import Message
 
 
-class Message(AllowExtraFieldsModel):
-    id: Union[str, int] = Field(
-        ...,
-        description="Unique identifier for the message or its position, You can rely on the message Id for idempotent",
-    )
-    body: Sequence[Any] | Mapping[Any, Any] | str = Field(
-        ..., description="The actual message payload"
-    )
-    timestamp: Optional[datetime] = Field(
-        default_factory=utcnow, description="When the message was published or received"
-    )
+class ConsumerMessage(Message):
     ack_handle: Optional[str] = Field(
         default=None,
         description="Token or handle required to ack/nack/delete this message",
-    )
-    metadata: Dict[str, Any] = Field(
-        default_factory=dict, description="Additional message properties or headers"
     )
 
 
@@ -93,7 +78,7 @@ class EventConsumer(ABC):
             if subscriber in self._subscribers:
                 self._subscribers.remove(subscriber)
 
-    async def dispatch(self, event: Message) -> None:
+    async def dispatch(self, message: Message) -> None:
         """
         Dispatch events to all registered subscribers.
         """
@@ -103,19 +88,19 @@ class EventConsumer(ABC):
 
         # async with event_context(self._config.type, id=str(event.id)) as ctx:
         tasks: List[Awaitable[Any]] = [
-            subscriber(event) for subscriber in self._subscribers
+            subscriber(message) for subscriber in self._subscribers
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         if any(isinstance(r, RetryableEventError) for r in results):
             requeue = True
-            logger.error(
-                f"Some subscribers failed for event {event.id}, requeue={requeue}"
+            logger.debug(
+                f"Some subscribers failed for event {message.id}, requeue={requeue}"
             )
-            return await self.nack(event, requeue=requeue)
+            return await self.nack(message, requeue=requeue)
 
-        return await self.ack(event)
+        return await self.ack(message)
 
     @abstractmethod
     async def start(self) -> None:

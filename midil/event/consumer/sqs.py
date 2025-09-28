@@ -5,15 +5,16 @@ from midil.event.consumer.strategies.pull import (
 import aioboto3
 import asyncio
 from loguru import logger
-from midil.event.consumer.strategies.base import Message
+from midil.event.consumer.strategies.base import ConsumerMessage
 from pydantic import Field
 from botocore.exceptions import ClientError
-from typing import Dict, Any, Optional, Literal
+from typing import Dict, Any, Optional, Literal, cast
 import json
 from datetime import datetime
 from midil.utils.retry import AsyncRetry
 from midil.event.utils import get_region_from_sqs_queue_url
-
+from midil.utils.backoff import ExponentialBackoff
+from midil.event.message import Message
 
 retry_policy = AsyncRetry(retry_on_exceptions=(ClientError,))
 
@@ -36,6 +37,12 @@ class SQSConsumerEventConfig(PullEventConsumerConfig):
     poll_interval: float = Field(
         default=0.1, description="Interval between polls if no messages", ge=0.0
     )
+    backoff_base_delay: float = Field(
+        default=5, description="Base delay for backoff in seconds", ge=0
+    )
+    backoff_max_delay: float = Field(
+        default=300, description="Max delay for backoff in seconds", ge=0
+    )
 
     @property
     def region(self) -> str:
@@ -54,6 +61,10 @@ class SQSConsumer(PullEventConsumer):
         super().__init__(config)
         self._config: SQSConsumerEventConfig = config
         self.session = aioboto3.Session()
+        self.backoff = ExponentialBackoff(
+            base_delay=self._config.backoff_base_delay,
+            max_delay=self._config.backoff_max_delay,
+        )
 
     async def ack(self, message: Message) -> None:
         """
@@ -62,6 +73,7 @@ class SQSConsumer(PullEventConsumer):
         Args:
             message (EventContext): The SQS message dictionary, expected to contain 'ReceiptHandle'.
         """
+        message = cast(ConsumerMessage, message)
         try:
             async with self.session.client(
                 "sqs", region_name=self._config.region
@@ -91,6 +103,7 @@ class SQSConsumer(PullEventConsumer):
             message (Message): The SQS message object (with ReceiptHandle, Body, etc.).
             requeue (bool): Whether to send the message to the DLQ (if configured).
         """
+        message = cast(ConsumerMessage, message)
         try:
             if requeue and self._config.dlq_url:
                 # move to dead letter queue
@@ -120,17 +133,23 @@ class SQSConsumer(PullEventConsumer):
                 async with self.session.client(
                     "sqs", region_name=self._config.region
                 ) as sqs:
+                    receive_count = int(
+                        message.metadata.get("ApproximateReceiveCount", "1")
+                    )
+                    delay = self.backoff.next_delay(receive_count)
                     await sqs.change_message_visibility(
                         QueueUrl=self._config.queue_url,
                         ReceiptHandle=message.ack_handle,
-                        VisibilityTimeout=0,
+                        VisibilityTimeout=delay,
                     )
-                    logger.debug(f"Reset visibility for message {message.id}")
+                    logger.debug(
+                        f"Requeued message {message.id} with backoff delay={delay}s (attempt {receive_count})"
+                    )
 
         except ClientError as e:
             logger.error(f"Error nacking message {message.id}: {e}")
 
-    # @retry_policy.retry
+    @retry_policy.retry
     async def _poll_loop(self) -> None:
         """
         Main loop for polling SQS and processing messages.
@@ -151,7 +170,6 @@ class SQSConsumer(PullEventConsumer):
                     )
                     messages = response.get("Messages", [])
                     if messages:
-                        # Process messages in parallel with semaphore
                         logger.debug(
                             f"Found {len(messages)} message(s), dispatching..."
                         )
@@ -191,7 +209,7 @@ class SQSConsumer(PullEventConsumer):
                 **message.get("MessageAttributes", {}),
             }
 
-            event = Message(
+            event = ConsumerMessage(
                 id=message["MessageId"],
                 body=body,
                 timestamp=timestamp,
