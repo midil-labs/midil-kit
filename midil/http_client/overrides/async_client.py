@@ -1,7 +1,7 @@
 from typing import Any, Type, override
 import httpx
 
-from midil.http.overrides.retry.transport import RetryTransport
+from midil.http_client.overrides.retry.transport import RetryTransport
 
 
 class MidilAsyncClient(httpx.AsyncClient):

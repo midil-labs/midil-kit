@@ -4,13 +4,13 @@ from typing import Any, Callable, Coroutine, Optional, Union
 
 import httpx
 
-from midil.http.overrides.retry.protocols import (
+from midil.http_client.overrides.retry.protocols import (
     RetryObserver,
     RetryStrategy,
     BackoffStrategy,
 )
-from midil.http.overrides.retry.strategies import DefaultRetryStrategy
-from midil.http.overrides.retry.backoffs import ExponentialBackoffAdaptor
+from midil.http_client.overrides.retry.strategies import DefaultRetryStrategy
+from midil.http_client.overrides.retry.backoffs import ExponentialBackoffAdaptor
 from loguru import logger
 
 

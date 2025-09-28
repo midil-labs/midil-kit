@@ -6,7 +6,7 @@ from midil.auth.interfaces.authenticator import AuthNProvider
 from midil.auth.interfaces.models import AuthNToken, AuthNHeaders
 import asyncio
 from midil.auth.cognito._exceptions import CognitoAuthenticationError
-from midil.http.overrides.async_http import get_http_async_client
+from midil.http_client.overrides.async_http import get_http_async_client
 
 
 class CognitoClientCredentialsAuthenticator(AuthNProvider):

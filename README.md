@@ -127,7 +127,7 @@ await run_sqs_consumer(
 ### HTTP Client with Authentication
 
 ```python
-from midil.http import HttpClient
+from midil.http_client import HttpClient
 from midil.auth.cognito import CognitoClientCredentialsAuthenticator
 from httpx import URL
 
@@ -230,7 +230,7 @@ async def get_current_user(auth=Depends(get_auth)):
 - `EventContext`: Event tracing and context management
 - `event_context()`: Async context manager for event scoping
 
-### HTTP Module (`midil.http`)
+### HTTP Module (`midil.http_client`)
 
 #### Client
 - `HttpClient`: Enhanced HTTP client with auth integration

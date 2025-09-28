@@ -11,6 +11,7 @@ from midil.event.config import (
     EventProducerType,
 )
 from functools import lru_cache
+from pydantic import Field
 
 
 T = TypeVar("T", bound=BaseSettings)
@@ -27,7 +28,23 @@ class _BaseSettings(BaseSettings):
     )
 
 
-class MIDILSettings(_BaseSettings):
+class LoggerSettings(_BaseSettings):
+    logger: LoggerConfig = Field(default=LoggerConfig())
+
+
+class EventSettings(_BaseSettings):
+    event: EventConfig
+
+
+class ApiSettings(_BaseSettings):
+    api: MidilApiConfig
+
+
+class AuthSettings(_BaseSettings):
+    auth: AuthConfig
+
+
+class MidilSettings(_BaseSettings):
     api: Optional[MidilApiConfig] = None
     auth: Optional[AuthConfig] = None
     event: Optional[EventConfig] = None
@@ -63,9 +80,9 @@ class LoggerSettingsError(SettingsError):
 
 
 @lru_cache(maxsize=1)
-def get_settings() -> MIDILSettings:
-    """Get the singleton MIDILSettings instance, cached for performance."""
-    settings = MIDILSettings()
+def get_settings() -> MidilSettings:
+    """Get the singleton MidilSettings instance, cached for performance."""
+    settings = MidilSettings()
     return settings
 
 
@@ -106,7 +123,7 @@ def get_auth_settings(expected: Literal["cognito"]) -> AuthConfig:
     if settings.auth is None:
         raise AuthSettingsError(
             f"Authentication settings for '{expected}' not configured. "
-            "Ensure MIDIL__AUTH__TYPE=cognito is set in the .env file."
+            "Ensure MIDIL__AUTH is set in the .env file."
         )
     if settings.auth.type != expected:
         raise AuthSettingsError(

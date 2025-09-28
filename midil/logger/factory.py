@@ -26,5 +26,5 @@ class LoggerFactory:
             }
         )
         for handler in self.handlers:
-            handler.attach(self.config.level)
+            handler.attach(self.config.log_level)
         return logger
