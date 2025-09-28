@@ -1,3 +1,5 @@
+from midil.event.event_bus import EventBus
+
 # Producers
 from midil.event.producer.sqs import SQSProducer, SQSProducerEventConfig
 from midil.event.producer.base import BaseProducerConfig
@@ -50,6 +52,7 @@ from midil.event.context import EventContext, get_current_event, event_context
 
 __all__ = [
     # event bus
+    "EventBus",
     # message
     "Message",
     # Producers

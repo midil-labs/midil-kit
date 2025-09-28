@@ -30,12 +30,6 @@ from midil.event.config import (
     EventProducerType,
     EventConsumerType,
 )
-from midil.settings import (
-    list_available_consumers,
-    get_consumer_event_settings,
-    get_producer_event_settings,
-    list_available_producers,
-)
 
 
 class EventBusFactory:
@@ -164,6 +158,13 @@ class EventBus:
             config: An EventBusConfig instance specifying producer and/or consumer configurations.
         """
         if config is None:
+            from midil.settings import (
+                list_available_consumers,
+                get_consumer_event_settings,
+                get_producer_event_settings,
+                list_available_producers,
+            )
+
             consumers = list_available_consumers()
             producers = list_available_producers()
             config = EventConfig(
