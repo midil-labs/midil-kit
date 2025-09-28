@@ -278,7 +278,5 @@ def get_logger_settings() -> LoggerConfig:
     """Get logger settings, raising an error if not configured."""
     settings = get_settings()
     if settings.logger is None:
-        raise LoggerSettingsError(
-            "Logger settings are not configured. Ensure MIDIL__LOGGER is set in the .env file."
-        )
+        return LoggerConfig()
     return settings.logger
