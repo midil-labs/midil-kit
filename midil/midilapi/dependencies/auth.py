@@ -20,5 +20,5 @@ async def authorize_request(
         region=cognito_settings.region,
     )
     claims = await authorizer.verify(token)
-    logger.info(f"Authenticated request with claims: {claims}")
+    logger.info(f"Authenticated request for user {claims.sub}")
     return claims

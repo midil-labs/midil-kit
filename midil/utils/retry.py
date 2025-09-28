@@ -76,7 +76,7 @@ class AsyncRetry(BaseAsyncRetryPolicy):
             with attempt:
                 attempt_number = attempt.retry_state.attempt_number
                 logger.debug(
-                    f"Attempt {attempt_number}: calling '{func.__name__}' with args={args}, kwargs={kwargs}"
+                    f"Attempt {attempt_number}: Executing function '{func.__name__}' with arguments {args} and keyword arguments {kwargs}."
                 )
 
                 return await func(*args, **kwargs)

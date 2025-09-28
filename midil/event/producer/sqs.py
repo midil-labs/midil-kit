@@ -1,10 +1,11 @@
 from midil.event.producer.base import EventProducer
 from midil.event.producer.base import BaseProducerConfig
 import aioboto3
-from typing import Dict, Any, Literal
+from typing import Literal
 import json
 from pydantic import Field
 from midil.event.utils import get_region_from_sqs_queue_url
+from midil.event.message import MessageBody
 
 
 class SQSProducerEventConfig(BaseProducerConfig):
@@ -21,7 +22,7 @@ class SQSProducer(EventProducer):
         self.session = aioboto3.Session()
         self.config = config
 
-    async def publish(self, payload: Dict[str, Any], **kwargs) -> None:
+    async def publish(self, payload: MessageBody, **kwargs) -> None:
         message = json.dumps(payload)
         async with self.session.client("sqs", region_name=self.config.region) as sqs:
             await sqs.send_message(QueueUrl=self.config.queue_url, MessageBody=message)

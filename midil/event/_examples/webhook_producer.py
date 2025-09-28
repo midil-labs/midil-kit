@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 import uvicorn
 from midil.event.consumer.webhook import WebhookConsumer, WebhookConsumerEventConfig
-from midil.event.consumer.strategies.base import Message
+from midil.event.message import Message
 from midil.event.subscriber.base import FunctionSubscriber
 from contextlib import asynccontextmanager
 

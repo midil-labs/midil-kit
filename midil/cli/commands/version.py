@@ -1,7 +1,9 @@
 import click
+from pathlib import Path
 
-from midil.version import __version__
+from midil.version import __version__, __service_version__
 from midil.cli.commands._common import console
+from midil.cli.utils import print_logo
 
 
 @click.command("version")
@@ -16,10 +18,40 @@ from midil.cli.commands._common import console
 )
 def version_command(short: bool) -> None:
     """
-    Displays the version of the Midil package.
+    Displays the version of the Midil package (and service if inside a service directory).
     """
     if short:
-        console.print(__version__)
-    else:
-        console.print(f"🌊 MIDIL Kit version: {__version__}")
-        console.print("A Python SDK for backend systems development @midil.io")
+        console.print(
+            f"[bold cyan]midil-kit[/bold cyan] "
+            f"[bold green]{__version__}[/bold green]"
+        )
+        return
+
+    print_logo()
+
+    path = Path.cwd()
+    in_service_dir = "services" in path.parts
+
+    # Build version info lines
+    blocks = [
+        [
+            "[bold cyan]midil-kit[/bold cyan]",
+            f"  └── version: [bold green]{__version__}[/bold green]",
+        ]
+    ]
+
+    if in_service_dir:
+        try:
+            services_idx = path.parts.index("services")
+            service_name = path.parts[services_idx + 1]
+        except (ValueError, IndexError):
+            service_name = "Service"
+
+        blocks.append(
+            [
+                f"[bold cyan]{service_name}[/bold cyan]",
+                f"  └── version: [bold green]{__service_version__}[/bold green]",
+            ]
+        )
+    msg = "\n\n".join("\n".join(block) for block in blocks)
+    console.print(f"\n{msg}\n", justify="left")

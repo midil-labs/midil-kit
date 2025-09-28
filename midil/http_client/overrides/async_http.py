@@ -3,8 +3,8 @@ import contextvars
 import hashlib
 import json
 
-from midil.http.overrides.async_client import MidilAsyncClient
-from midil.http.overrides.retry.transport import RetryTransport
+from midil.http_client.overrides.async_client import MidilAsyncClient
+from midil.http_client.overrides.retry.transport import RetryTransport
 
 from typing import Any
 
@@ -48,19 +48,3 @@ def _get_http_client_context(timeout: int = 60, **kwargs: Any) -> httpx.AsyncCli
 
 def get_http_async_client(timeout: int = 60, **kwargs: Any) -> httpx.AsyncClient:
     return _get_http_client_context(timeout, **kwargs)
-
-
-if __name__ == "__main__":
-    headers = {
-        "Authorization": "Bearer 123",
-        "Content-Type": "application/json",
-    }
-    client = get_http_async_client(headers=headers, base_url="https://api.example.com")
-    print("The client base url is", client.base_url)
-    client2 = get_http_async_client(
-        headers=headers, base_url="https://api2.example.com"
-    )
-
-    print("The client Headers", client2.headers)
-
-    assert id(client) == id(client2), "The clients should be the same"

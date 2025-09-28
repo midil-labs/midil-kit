@@ -1,8 +1,8 @@
-from enum import Enum
 from typing import Dict, Optional, Literal, TypeVar, Any
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from midil.auth.config import AuthConfig
 from midil.midilapi.config import MidilApiConfig
+from midil.logger.config import LoggerConfig
 from midil.event.config import (
     EventConfig,
     ConsumerConfig,
@@ -11,7 +11,8 @@ from midil.event.config import (
     EventProducerType,
 )
 from functools import lru_cache
-from loguru import logger
+from pydantic import Field
+
 
 T = TypeVar("T", bound=BaseSettings)
 
@@ -27,10 +28,27 @@ class _BaseSettings(BaseSettings):
     )
 
 
-class MIDILSettings(_BaseSettings):
+class LoggerSettings(_BaseSettings):
+    logger: LoggerConfig = Field(default=LoggerConfig())
+
+
+class EventSettings(_BaseSettings):
+    event: EventConfig
+
+
+class ApiSettings(_BaseSettings):
+    api: MidilApiConfig
+
+
+class AuthSettings(_BaseSettings):
+    auth: AuthConfig
+
+
+class MidilSettings(_BaseSettings):
     api: Optional[MidilApiConfig] = None
     auth: Optional[AuthConfig] = None
     event: Optional[EventConfig] = None
+    logger: Optional[LoggerConfig] = None
 
     def model_post_init(self, __context: Any) -> None:
         """Post-initialization validation of settings."""
@@ -44,28 +62,37 @@ class MIDILSettings(_BaseSettings):
 class SettingsError(Exception):
     """Base exception for settings-related errors."""
 
+    ...
+
 
 class AuthSettingsError(SettingsError):
     """Exception for authentication settings errors."""
+
+    ...
 
 
 class EventSettingsError(SettingsError):
     """Exception for event settings errors."""
 
+    ...
+
 
 class ApiSettingsError(SettingsError):
     """Exception for API settings errors."""
 
+    ...
 
-class AuthType(str, Enum):
-    COGNITO = "cognito"
+
+class LoggerSettingsError(SettingsError):
+    """Exception for logger settings errors."""
+
+    ...
 
 
 @lru_cache(maxsize=1)
-def get_settings() -> MIDILSettings:
-    """Get the singleton MIDILSettings instance, cached for performance."""
-    logger.info("Loading MIDIL settings from environment or .env file")
-    settings = MIDILSettings()
+def get_settings() -> MidilSettings:
+    """Get the singleton MidilSettings instance, cached for performance."""
+    settings = MidilSettings()
     return settings
 
 
@@ -106,7 +133,7 @@ def get_auth_settings(expected: Literal["cognito"]) -> AuthConfig:
     if settings.auth is None:
         raise AuthSettingsError(
             f"Authentication settings for '{expected}' not configured. "
-            "Ensure MIDIL__AUTH__TYPE=cognito is set in the .env file."
+            "Ensure MIDIL__AUTH is set in the .env file."
         )
     if settings.auth.type != expected:
         raise AuthSettingsError(
@@ -129,6 +156,7 @@ def get_consumer_event_settings(name: str) -> ConsumerConfig:
     Example:
         >>> consumer = get_consumer_event_settings("sqs_consumer")
     """
+    name = name.lower()
     consumers = get_event_settings().consumers
     if consumers is None:
         raise EventSettingsError(
@@ -157,6 +185,7 @@ def get_producer_event_settings(name: str) -> ProducerConfig:
     Example:
         >>> producer = get_producer_event_settings("sqs_producer")
     """
+    name = name.lower()
     producers = get_event_settings().producers
     if producers is None:
         raise EventSettingsError(
@@ -270,3 +299,11 @@ def list_available_producers() -> Dict[str, str]:
         if producers
         else {}
     )
+
+
+def get_logger_settings() -> LoggerConfig:
+    """Get logger settings, raising an error if not configured."""
+    settings = get_settings()
+    if settings.logger is None:
+        return LoggerConfig()
+    return settings.logger

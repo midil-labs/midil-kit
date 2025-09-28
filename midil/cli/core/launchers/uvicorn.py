@@ -3,7 +3,6 @@ import subprocess
 from typing import Optional
 
 from midil.cli.core.launchers.base import BaseLauncher
-from midil.cli.commands._common import console
 
 
 class UvicornLauncher(BaseLauncher):
@@ -30,7 +29,7 @@ class UvicornLauncher(BaseLauncher):
         app_path = self.project_dir / f"{module_file}.py"
         if not app_path.exists():
             raise FileNotFoundError(
-                f"🚫 Cannot find {module_file}.py in {self.project_dir}."
+                f"Cannot find {module_file}.py in {self.project_dir}."
             )
         return app_path
 
@@ -50,9 +49,5 @@ class UvicornLauncher(BaseLauncher):
 
     def run(self) -> None:
         """Auto-discover FastAPI app and launch it with uvicorn."""
-        self.discover_app()
         command = self.build_command()
-        console.print(
-            f"🚀 Launching FastAPI app: {self.app_module} on port {self.port}..."
-        )
         subprocess.run(command, cwd=str(self.project_dir))

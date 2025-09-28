@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, HTTPException
 from loguru import logger
-from midil.event.consumer.strategies.base import Message
+from midil.event.message import Message
 from midil.event.consumer.strategies.push import (
     PushEventConsumer,
     PushEventConsumerConfig,

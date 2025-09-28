@@ -1,6 +1,7 @@
 import click
 from midil.cli.core.scaffolds import scaffold_project
 from midil.cli.commands._common import console
+from midil.cli.utils import print_logo
 
 
 @click.command("init")
@@ -31,5 +32,6 @@ def init_command(name, type):
         Use default name and type:
             midil init
     """
+    print_logo()
     console.print(f"🚀 Scaffolding {type} project: [bold]{name}[/bold]", style="blue")
     scaffold_project(name, type)

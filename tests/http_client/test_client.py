@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import AsyncMock, Mock
 import httpx
 from httpx import URL
-from midil.http.client import HttpClient
+from midil.http_client.client import HttpClient
 from midil.auth.interfaces.models import AuthNHeaders, AuthNToken
 from midil.auth.interfaces.authenticator import AuthNProvider
 
