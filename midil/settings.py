@@ -37,7 +37,7 @@ class EventSettings(_BaseSettings):
 
 
 class ApiSettings(_BaseSettings):
-    api: MidilApiConfig
+    api: MidilApiConfig = Field(default=MidilApiConfig())
 
 
 class AuthSettings(_BaseSettings):

@@ -10,12 +10,14 @@ class UvicornLauncher(BaseLauncher):
         self,
         app_module: str = "main:app",
         port: int = 8000,
+        host: str = "0.0.0.0",
         reload: bool = True,
         extra_args: Optional[list[str]] = None,
         project_dir: Optional[Path] = None,
     ):
         self.app_module = app_module
         self.port = port
+        self.host = host
         self.reload = reload
         self.extra_args = extra_args or []
         self.project_dir = project_dir or Path.cwd()
@@ -41,6 +43,7 @@ class UvicornLauncher(BaseLauncher):
             "uvicorn",
             self.app_module,
             f"--port={self.port}",
+            f"--host={self.host}",
         ]
         if self.reload:
             cmd.append("--reload")
