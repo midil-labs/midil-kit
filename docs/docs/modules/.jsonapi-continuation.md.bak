@@ -1,0 +1,198 @@
+    assert len(data[\"errors\"]) > 0
+
+    error = data[\"errors\"][0]
+    assert \"status\" in error
+    assert \"title\" in error
+    assert \"source\" in error
+```
+
+## Performance Optimization
+
+### Efficient Included Resource Loading
+
+```python
+def load_included_resources(
+    main_resources: list,
+    include: Include
+) -> list[ResourceObject]:
+    """Efficiently load included resources with minimal database queries"""
+    included = []
+
+    if include.should_include("posts"):
+        # Collect all user IDs
+        user_ids = [resource.id for resource in main_resources]
+
+        # Single query to load all posts
+        posts = db.session.query(Post).filter(Post.user_id.in_(user_ids)).all()
+
+        # Serialize posts
+        for post in posts:
+            included.append(PostSerializer.serialize(post, load_relationships=False))
+
+    return included
+```
+
+### Caching JSON:API Responses
+
+```python
+import hashlib
+import json
+from typing import Optional
+
+class JSONAPICacheManager:
+    def __init__(self, redis_client):
+        self.redis = redis_client
+        self.default_ttl = 300  # 5 minutes
+
+    def generate_cache_key(
+        self,
+        resource_type: str,
+        query_params: QueryParams,
+        user_context: str = None
+    ) -> str:
+        """Generate a unique cache key for the request"""
+        key_parts = [
+            resource_type,
+            query_params.sort.to_string() if query_params.sort else "no-sort",
+            query_params.include.to_string() if query_params.include else "no-include",
+            f"page-{query_params.page_number}-{query_params.page_size}",
+            json.dumps(query_params.filter or {}, sort_keys=True)
+        ]
+
+        if user_context:
+            key_parts.append(f"user-{user_context}")
+
+        key_string = ":".join(key_parts)
+        return f"jsonapi:{hashlib.md5(key_string.encode()).hexdigest()}"
+
+    async def get_cached_response(
+        self,
+        cache_key: str
+    ) -> Optional[Document]:
+        """Get cached JSON:API document"""
+        cached_data = await self.redis.get(cache_key)
+        if cached_data:
+            data = json.loads(cached_data)
+            return Document.model_validate(data)
+        return None
+
+    async def cache_response(
+        self,
+        cache_key: str,
+        document: Document,
+        ttl: int = None
+    ) -> None:
+        """Cache JSON:API document"""
+        ttl = ttl or self.default_ttl
+        json_data = document.model_dump_json()
+        await self.redis.setex(cache_key, ttl, json_data)
+```
+
+## Best Practices
+
+### API Design
+
+1. **Consistent Resource Types**: Use plural nouns (`users`, `posts`, `companies`)
+2. **Meaningful IDs**: Use UUIDs or meaningful identifiers
+3. **Relationship Naming**: Use clear, descriptive relationship names
+4. **Attribute Naming**: Use snake_case for JSON:API attributes
+
+```python
+# Good
+user = ResourceObject(
+    id="usr_123abc",
+    type="users",
+    attributes={
+        "full_name": "John Doe",
+        "email_address": "john@example.com",
+        "created_at": "2025-01-01T12:00:00Z",
+        "is_active": True
+    },
+    relationships={
+        "primary_company": RelationshipObject(...),
+        "authored_posts": RelationshipObject(...)
+    }
+)
+```
+
+### Error Handling Strategy
+
+```python
+class APIErrorHandler:
+    @staticmethod
+    def handle_validation_errors(errors: dict) -> ErrorDocument:
+        """Convert validation errors to JSON:API format"""
+        api_errors = []
+
+        for field, messages in errors.items():
+            for message in messages:
+                api_errors.append(ErrorObject(
+                    status="422",
+                    code="VALIDATION_ERROR",
+                    title="Validation Failed",
+                    detail=message,
+                    source=ErrorSource(pointer=f"/data/attributes/{field}")
+                ))
+
+        return ErrorDocument(errors=api_errors)
+
+    @staticmethod
+    def handle_not_found(resource_type: str, resource_id: str) -> ErrorDocument:
+        """Handle resource not found errors"""
+        error = ErrorObject(
+            status="404",
+            code="RESOURCE_NOT_FOUND",
+            title="Resource Not Found",
+            detail=f"{resource_type.title()} with ID '{resource_id}' was not found",
+            meta={"resource_type": resource_type, "resource_id": resource_id}
+        )
+        return ErrorDocument(errors=[error])
+```
+
+## Security Considerations
+
+```python
+class SecureJSONAPIHandler:
+    def __init__(self, current_user):
+        self.current_user = current_user
+
+    def filter_sensitive_attributes(
+        self,
+        resource: ResourceObject,
+        resource_permissions: dict
+    ) -> ResourceObject:
+        """Remove sensitive attributes based on user permissions"""
+        if not resource.attributes:
+            return resource
+
+        resource_type = resource.type
+        allowed_fields = resource_permissions.get(resource_type, [])
+
+        if allowed_fields:
+            filtered_attributes = {
+                k: v for k, v in resource.attributes.items()
+                if k in allowed_fields
+            }
+            resource.attributes = filtered_attributes
+
+        return resource
+
+    def can_access_resource(self, resource: ResourceObject) -> bool:
+        """Check if current user can access this resource"""
+        if resource.type == "users":
+            # Users can only access their own data unless they're admin
+            return (
+                resource.id == str(self.current_user.id) or
+                self.current_user.is_admin
+            )
+
+        return True  # Default allow
+```
+
+## Next Steps
+
+- [**Query Parameters Deep Dive**](../jsonapi/query-params): Advanced query parameter handling
+- [**Document Validation**](../jsonapi/validation): Schema validation and error handling
+- [**FastAPI Integration**](../extensions/dependencies): JSON:API dependencies for FastAPI
+- [**Performance Optimization**](../jsonapi/performance): Scaling JSON:API applications
+- [**Real-world Examples**](../jsonapi/examples): Complete JSON:API implementations
