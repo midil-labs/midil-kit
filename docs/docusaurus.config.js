@@ -1,34 +1,26 @@
 // @ts-check
-// `@type` JSDoc annotations allow editor autocompletion and type checking
-// (when paired with `@ts-check`).
-// There are various equivalent ways to declare your Docusaurus config.
-// See: https://docusaurus.io/docs/api/docusaurus-config
+// Note: type annotations allow type checking and IDEs autocompletion
 
-import {themes as prismThemes} from 'prism-react-renderer';
+const lightCodeTheme = require("prism-react-renderer").themes.github;
+const darkCodeTheme = require("prism-react-renderer").themes.dracula;
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Midil Kit',
-  tagline: 'A comprehensive Python SDK for backend systems development at midil.io',
-  favicon: 'img/favicon.ico',
-
-  // Set the production url of your site here
+  tagline: 'A comprehensive Python SDK for backend systems development',
   url: 'https://docs.midil.io',
-  // Set the /<baseUrl>/ pathname under which your site is served
-  // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/midil-kit/',
-
-  // GitHub pages deployment config.
-  // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'midil-io', // Usually your GitHub org/user name.
-  projectName: 'midil-kit', // Usually your repo name.
-
   onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: 'warn',
+  favicon: 'img/favicon.png',
+  organizationName: 'midil-io',
+  projectName: 'midil-kit',
+  staticDirectories: ['static'],
 
-  // Even if you don't use internationalization, you can use this field to set
-  // useful metadata like html lang. For example, if your site is Chinese, you
-  // may want to set it to `zh-Hans`.
+  future: {
+    experimental_faster: true, // Faster builds with Rspack
+    v4: true, // Enable all Docusaurus v4 future flags
+  },
+
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
@@ -36,9 +28,10 @@ const config = {
 
   markdown: {
     mermaid: true,
+    hooks: {
+      onBrokenMarkdownLinks: 'throw',
+    },
   },
-
-  themes: ['@docusaurus/theme-mermaid'],
 
   presets: [
     [
@@ -46,15 +39,24 @@ const config = {
       /** @type {import('@docusaurus/preset-classic').Options} */
       ({
         docs: {
-          sidebarPath: './sidebars.js',
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl: 'https://github.com/midil-labs/midil-kit/tree/main/docs/',
           routeBasePath: '/',
+          sidebarPath: require.resolve('./sidebars.js'),
+          editUrl: ({ locale, docPath }) => {
+            return `https://github.com/midil-labs/midil-kit/edit/main/docs/docs/${docPath}`;
+          },
+          showLastUpdateTime: true,
+          // Enable Mermaid diagrams
+          remarkPlugins: [],
         },
         blog: false,
         theme: {
-          customCss: './src/css/custom.css',
+          customCss: require.resolve('./src/css/custom.css'),
+        },
+        sitemap: {
+          changefreq: 'weekly',
+          priority: 0.5,
+          ignorePatterns: ['/tags/**'],
+          filename: 'sitemap.xml',
         },
       }),
     ],
@@ -63,25 +65,52 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
-      // Replace with your project's social card
-      image: 'img/docusaurus-social-card.jpg',
       navbar: {
-        title: 'Midil Kit',
+        title: 'Midil Kit Documentation',
         logo: {
           alt: 'Midil Kit Logo',
           src: 'img/logo.svg',
+          srcDark: 'img/logo-dark.svg', // Optional: add dark mode logo
         },
         items: [
+          {
+            to: '/',
+            label: 'Home',
+            position: 'left',
+            className: 'header-home-link',
+            activeBaseRegex: '^((?!modules|api-reference).)*$',
+          },
+          {
+            type: 'docSidebar',
+            sidebarId: 'modulesSidebar',
+            position: 'left',
+            label: 'Modules',
+            className: 'header-modules-link',
+          },
           {
             type: 'docSidebar',
             sidebarId: 'tutorialSidebar',
             position: 'left',
-            label: 'Documentation',
+            label: 'Guides',
+            className: 'header-guides-link',
           },
           {
-            href: 'https://github.com/midil-labs/midil-kit',
-            label: 'GitHub',
+            to: '/api-reference',
+            label: 'API Reference',
+            position: 'left',
+            className: 'header-api-link',
+          },
+          {
+            to: 'https://github.com/midil-labs/midil-kit',
             position: 'right',
+            target: '_blank',
+            className: 'header-github-link',
+          },
+          {
+            to: 'https://discord.gg/midil',
+            position: 'right',
+            target: '_blank',
+            className: 'header-slack-link',
           },
         ],
       },
@@ -92,18 +121,59 @@ const config = {
             title: 'Documentation',
             items: [
               {
+                label: 'Introduction',
+                to: '/',
+              },
+              {
                 label: 'Getting Started',
                 to: '/getting-started',
               },
               {
-                label: 'API Reference',
-                to: '/api',
+                label: 'Authentication',
+                to: '/auth/overview',
+              },
+              {
+                label: 'Event System',
+                to: '/modules/event',
+              },
+              {
+                label: 'HTTP Client',
+                to: '/modules/http',
+              },
+            ],
+          },
+          {
+            title: 'Core Modules',
+            items: [
+              {
+                label: 'Authentication & Authorization',
+                to: '/modules/auth',
+              },
+              {
+                label: 'Event System',
+                to: '/modules/event',
+              },
+              {
+                label: 'HTTP Client',
+                to: '/modules/http',
+              },
+              {
+                label: 'JSON:API',
+                to: '/modules/jsonapi',
+              },
+              {
+                label: 'FastAPI Extensions',
+                to: '/modules/extensions',
               },
             ],
           },
           {
             title: 'Community',
             items: [
+              {
+                label: 'GitHub',
+                href: 'https://github.com/midil-labs/midil-kit',
+              },
               {
                 label: 'GitHub Issues',
                 href: 'https://github.com/midil-labs/midil-kit/issues',
@@ -118,24 +188,140 @@ const config = {
             title: 'More',
             items: [
               {
+                label: 'PyPI Package',
+                href: 'https://pypi.org/project/midil-kit/',
+              },
+              {
+                label: 'Changelog',
+                href: 'https://github.com/midil-labs/midil-kit/blob/main/CHANGELOG.md',
+              },
+              {
                 label: 'Midil.io',
                 href: 'https://midil.io',
               },
               {
-                label: 'GitHub',
-                href: 'https://github.com/midil-labs/midil-kit',
+                label: 'License',
+                href: 'https://github.com/midil-labs/midil-kit/blob/main/LICENSE',
               },
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} Midil.io. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} Midil.io. Built with ❤️ by the Midil team.`,
+      },
+      tableOfContents: {
+        minHeadingLevel: 2,
+        maxHeadingLevel: 6,
+      },
+      colorMode: {
+        defaultMode: 'dark',
+        disableSwitch: false,
+        respectPrefersColorScheme: true,
+      },
+      announcementBar: {
+        id: 'midil_ctas',
+        content: '🚀 <strong>Midil Kit v1.0</strong> is now available! <a href="/getting-started">Get started</a> or <a href="https://github.com/midil-labs/midil-kit">view on GitHub</a>',
+        backgroundColor: '#000000',
+        textColor: '#FFFFFF',
+        isCloseable: true,
+      },
+      zoom: {
+        selector: '.markdown img:not(.not-zoom)',
+        background: {
+          light: 'rgb(255, 255, 255)',
+          dark: 'rgb(50, 50, 50)',
+        },
       },
       prism: {
-        theme: prismThemes.github,
-        darkTheme: prismThemes.dracula,
-        additionalLanguages: ['python', 'bash', 'json', 'yaml'],
+        theme: lightCodeTheme,
+        darkTheme: darkCodeTheme,
+        additionalLanguages: [
+          'python',
+          'bash',
+          'json',
+          'yaml',
+          'toml',
+          'ini',
+          'docker',
+          'nginx',
+          'sql',
+          'graphql',
+        ],
+      },
+      liveCodeBlock: {
+        /**
+         * The position of the live playground, above or under the editor
+         * Possible values: "top" | "bottom"
+         */
+        playgroundPosition: 'bottom',
       },
     }),
+
+  themes: [
+    '@docusaurus/theme-mermaid',
+    'docusaurus-theme-openapi-docs', // OpenAPI theme
+    [
+      require.resolve('@easyops-cn/docusaurus-search-local'),
+      {
+        indexBlog: false,
+        indexDocs: true,
+        docsRouteBasePath: '/',
+        hashed: true,
+        explicitSearchResultPath: true,
+        searchBarPosition: 'right',
+        searchBarShortcutHint: true,
+      },
+    ],
+  ],
+
+  plugins: [
+    require.resolve('docusaurus-plugin-image-zoom'),
+    '@docusaurus/theme-live-codeblock',
+    [
+      '@docusaurus/plugin-client-redirects',
+      {
+        createRedirects(existingPath) {
+          // Add custom redirects here as needed
+          // Example: if you move /old-path to /new-path
+          if (!existingPath.includes('/docs') && existingPath !== '/') {
+            return [existingPath.replace('/', '/docs/', 1)];
+          }
+          return undefined;
+        },
+      },
+    ],
+    [
+      'docusaurus-plugin-openapi-docs',
+      {
+        id: 'api',
+        docsPluginId: 'classic',
+        config: {
+          midilkit: {
+            // You can either:
+            // 1. Point to a local OpenAPI spec file
+            specPath: './static/openapi.yaml',
+            // 2. Or fetch from a URL
+            // specPath: 'https://api.midil.io/openapi.yaml',
+            outputDir: 'docs/api-reference',
+            sidebarOptions: {
+              groupPathsBy: 'tag',
+              categoryLinkSource: 'tag',
+            },
+            baseUrl: '/api-reference/',
+          },
+        }
+      },
+    ],
+    [
+      '@docusaurus/plugin-ideal-image',
+      {
+        quality: 70,
+        max: 1000,
+        min: 300,
+        steps: 7,
+        disableInDev: false,
+      },
+    ],
+  ],
 };
 
-export default config;
+module.exports = config;

@@ -1,0 +1,237 @@
+openapi: 3.0.0
+info:
+  title: Midil Kit API
+  version: 1.0.0
+  description: |
+    API documentation for Midil Kit - A comprehensive Python SDK for backend systems development.
+    
+    This API reference documents the core interfaces and methods available in Midil Kit.
+  contact:
+    name: Midil.io Team
+    url: https://midil.io
+    email: support@midil.io
+  license:
+    name: Apache 2.0
+    url: https://github.com/midil-labs/midil-kit/blob/main/LICENSE
+
+servers:
+  - url: https://api.midil.io
+    description: Production API
+  - url: https://staging-api.midil.io
+    description: Staging API
+  - url: http://localhost:8000
+    description: Local Development
+
+tags:
+  - name: Authentication
+    description: Authentication and authorization endpoints
+  - name: Events
+    description: Event system endpoints
+  - name: Health
+    description: Health check and monitoring endpoints
+
+paths:
+  /health:
+    get:
+      summary: Health Check
+      description: Check the health status of the API
+      tags:
+        - Health
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  version:
+                    type: string
+                    example: 1.0.0
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: '2025-01-01T12:00:00Z'
+
+  # Authentication endpoints example
+  /auth/token:
+    post:
+      summary: Get Access Token
+      description: Obtain an access token using client credentials
+      tags:
+        - Authentication
+      operationId: getToken
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - grant_type
+                - client_id
+                - client_secret
+              properties:
+                grant_type:
+                  type: string
+                  enum: [client_credentials]
+                  example: client_credentials
+                client_id:
+                  type: string
+                  example: your-client-id
+                client_secret:
+                  type: string
+                  example: your-client-secret
+                scope:
+                  type: string
+                  example: openid profile email
+      responses:
+        '200':
+          description: Token successfully generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Events endpoints example
+  /events:
+    post:
+      summary: Publish Event
+      description: Publish an event to the event bus
+      tags:
+        - Events
+      operationId: publishEvent
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventRequest'
+      responses:
+        '201':
+          description: Event published successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventResponse'
+        '400':
+          description: Invalid event data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /auth/token endpoint
+
+  schemas:
+    TokenResponse:
+      type: object
+      required:
+        - access_token
+        - token_type
+        - expires_in
+      properties:
+        access_token:
+          type: string
+          description: JWT access token
+          example: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+        token_type:
+          type: string
+          example: Bearer
+        expires_in:
+          type: integer
+          description: Token expiration time in seconds
+          example: 3600
+        scope:
+          type: string
+          example: openid profile email
+
+    EventRequest:
+      type: object
+      required:
+        - event_type
+        - data
+      properties:
+        event_type:
+          type: string
+          description: Type of event (e.g., user.created, order.placed)
+          example: user.created
+        data:
+          type: object
+          description: Event payload
+          example:
+            user_id: "123"
+            email: john@example.com
+            created_at: '2025-01-01T12:00:00Z'
+        metadata:
+          type: object
+          description: Additional event metadata
+          properties:
+            source:
+              type: string
+              example: api
+            version:
+              type: string
+              example: '1.0'
+
+    EventResponse:
+      type: object
+      properties:
+        event_id:
+          type: string
+          description: Unique event identifier
+          example: evt_123abc
+        event_type:
+          type: string
+          example: user.created
+        status:
+          type: string
+          enum: [published, queued]
+          example: published
+        timestamp:
+          type: string
+          format: date-time
+          example: '2025-01-01T12:00:00Z'
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code
+          example: invalid_request
+        message:
+          type: string
+          description: Human-readable error message
+          example: Invalid client credentials
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true

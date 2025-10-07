@@ -1,18 +1,22 @@
 # Midil Kit Documentation
 
-Modern, comprehensive documentation for Midil Kit built with [Docusaurus](https://docusaurus.io/).
+This is the official documentation site for Midil Kit, built with [Docusaurus 3](https://docusaurus.io/).
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
-- npm or yarn
+- **Node.js** >= 18.0
+- **npm** or **yarn**
 
 ### Installation
 
 ```bash
+# Install dependencies
 npm install
+
+# Or using yarn
+yarn install
 ```
 
 ### Development
@@ -21,221 +25,266 @@ Start the development server:
 
 ```bash
 npm start
+# or
+yarn start
 ```
 
-This will start a local development server and open up a browser window. Most changes are reflected live without having to restart the server.
+This will start the documentation site at `http://localhost:3000` with hot reloading.
 
-### Build
+### Building
 
-Generate static content for production:
+Build the static site for production:
 
 ```bash
 npm run build
+# or
+yarn build
 ```
 
-This command generates static content into the `build` directory and can be served using any static content hosting service.
+The static files will be generated in the `build` directory.
 
-### Deployment
+### Serving Production Build
 
-Deploy to GitHub Pages:
+After building, you can serve the production build locally:
+
+```bash
+npm run serve
+# or
+yarn serve
+```
+
+## 📁 Documentation Structure
+
+The documentation follows a modular structure that mirrors the Midil Kit codebase:
+
+```
+docs/
+├── docs/                    # Documentation content
+│   ├── introduction.md      # Landing page
+│   ├── getting-started.md   # Installation and setup guide
+│   ├── auth/               # Authentication guides
+│   │   └── overview.md
+│   └── modules/            # Module-specific documentation
+│       ├── auth.md         # midil.auth module
+│       ├── event.md        # midil.event module
+│       ├── http.md         # midil.http_client module
+│       └── extensions.md   # midil.midilapi module
+├── static/                 # Static assets (images, files)
+│   └── img/
+├── src/                    # Custom components and styles
+│   └── css/
+│       └── custom.css
+├── docusaurus.config.js    # Docusaurus configuration
+├── sidebars.js            # Sidebar navigation structure
+└── package.json           # Dependencies and scripts
+```
+
+## 📝 Writing Documentation
+
+### Adding New Pages
+
+1. Create a new `.md` or `.mdx` file in the `docs/` directory
+2. Add frontmatter at the top:
+
+```markdown
+---
+sidebar_position: 1
+title: Your Page Title
+description: Brief description for SEO
+---
+
+# Your Page Title
+
+Content goes here...
+```
+
+3. Add the page to `sidebars.js` in the appropriate section
+
+### Markdown Features
+
+#### Code Blocks
+
+Use syntax highlighting with language specification:
+
+````markdown
+```python showLineNumbers
+def hello_world():
+    print("Hello, Midil Kit!")
+```
+````
+
+#### Admonitions
+
+Use callouts to highlight important information:
+
+```markdown
+:::tip Pro Tip
+This is a helpful tip!
+:::
+
+:::info Additional Context
+This provides extra information.
+:::
+
+:::caution Be Careful
+This warns about potential issues.
+:::
+
+:::warning Critical
+This highlights critical information.
+:::
+```
+
+#### Mermaid Diagrams
+
+Create diagrams using Mermaid syntax:
+
+````markdown
+```mermaid
+graph TD
+    A[Start] --> B[Process]
+    B --> C[End]
+```
+````
+
+#### Tabs
+
+Create tabbed content:
+
+```markdown
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<Tabs>
+  <TabItem value="python" label="Python" default>
+    
+    ```python
+    print("Hello")
+    ```
+  
+  </TabItem>
+  <TabItem value="bash" label="Bash">
+    
+    ```bash
+    echo "Hello"
+    ```
+  
+  </TabItem>
+</Tabs>
+```
+
+#### Images
+
+Add images with zoom capability:
+
+```markdown
+![Alt text](/img/path/to/image.png)
+
+<!-- Disable zoom for specific images -->
+![No zoom](/img/logo.svg){.not-zoom}
+```
+
+## 🎨 Customization
+
+### Theming
+
+Customize colors and styles in `src/css/custom.css`:
+
+- Primary colors (light/dark mode)
+- Typography
+- Component styling
+- Responsive design
+
+### Navigation
+
+Edit `docusaurus.config.js` to customize:
+
+- Navbar items
+- Footer links
+- Site metadata
+- Plugins and themes
+
+### Sidebar
+
+Edit `sidebars.js` to organize documentation:
+
+- Add new categories
+- Reorder pages
+- Create nested structures
+
+## 🔍 Search
+
+The documentation includes local search powered by [@easyops-cn/docusaurus-search-local](https://github.com/easyops-cn/docusaurus-search-local).
+
+Search automatically indexes:
+- All documentation pages
+- Headings and content
+- Code blocks (optionally)
+
+## 📦 Features
+
+This documentation site includes:
+
+- ✅ **Local Search** - Fast client-side search
+- ✅ **Image Zoom** - Click images to zoom
+- ✅ **Live Code Blocks** - Interactive code examples
+- ✅ **Mermaid Diagrams** - Visual diagrams and flowcharts
+- ✅ **Dark Mode** - Auto-switching dark/light theme
+- ✅ **Responsive Design** - Mobile-friendly layout
+- ✅ **Code Highlighting** - Syntax highlighting for Python, Bash, YAML, JSON, and more
+- ✅ **Table of Contents** - Auto-generated TOC for each page
+- ✅ **Last Updated** - Shows last update time for pages
+- ✅ **Edit on GitHub** - Direct links to edit documentation
+
+## 🚢 Deployment
+
+### GitHub Pages
+
+To deploy to GitHub Pages:
 
 ```bash
 GIT_USER=<Your GitHub username> npm run deploy
 ```
 
-If you are using GitHub Pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+### Other Platforms
 
-## 📚 Documentation Structure
+The `build` directory contains static files that can be deployed to:
 
-```
-docs/
-├── docs/                    # Documentation pages
-│   ├── introduction.md      # Getting started
-│   ├── getting-started.md   # Installation & setup
-│   ├── modules/            # Core modules
-│   │   ├── auth.md         # Authentication module
-│   │   ├── event.md        # Event system module
-│   │   ├── http.md         # HTTP client module
-│   │   ├── jsonapi.md      # JSON:API module
-│   │   └── extensions.md   # FastAPI extensions
-│   ├── auth/               # Authentication details
-│   ├── event/              # Event system details
-│   ├── http/               # HTTP client details
-│   ├── jsonapi/            # JSON:API details
-│   ├── extensions/         # Extensions details
-│   ├── utils/              # Utilities
-│   └── development/        # Development guides
-├── src/                    # React components and CSS
-├── static/                 # Static assets
-├── docusaurus.config.js    # Configuration
-├── sidebars.js            # Sidebar configuration
-└── package.json           # Dependencies
-```
-
-## ✨ Features
-
-- **Modern Design**: Clean, responsive design with dark mode support
-- **Full-Text Search**: Powered by Algolia DocSearch
-- **Code Highlighting**: Syntax highlighting for Python, TypeScript, and more
-- **Mermaid Diagrams**: Interactive diagrams and flowcharts
-- **API Documentation**: Complete API reference with examples
-- **Live Code Examples**: Interactive code examples and snippets
-- **Mobile Optimized**: Fully responsive across all devices
-
-## 🛠️ Customization
-
-### Theme Configuration
-
-Edit `docusaurus.config.js` to customize:
-
-- Site metadata
-- Navigation menu
-- Footer links
-- Color scheme
-- Plugins and presets
-
-### Custom CSS
-
-Add custom styles in `src/css/custom.css`:
-
-```css
-:root {
-  --ifm-color-primary: #2e8555;
-  --ifm-color-primary-dark: #29784c;
-  /* Add more custom variables */
-}
-```
-
-### Adding Content
-
-1. Create new markdown files in the `docs/` directory
-2. Add them to `sidebars.js` for navigation
-3. Use frontmatter for metadata:
-
-```yaml
----
-sidebar_position: 1
-title: My Page Title
-description: Page description for SEO
----
-
-# My Page Content
-```
-
-## 📝 Writing Guidelines
-
-### Code Examples
-
-Use language-specific code blocks:
-
-\`\`\`python
-from midil.auth import AuthNProvider
-
-class MyAuth(AuthNProvider):
-    async def get_token(self):
-        return "token"
-\`\`\`
-
-### Diagrams
-
-Use Mermaid for diagrams:
-
-\`\`\`mermaid
-graph TD
-    A[Start] --> B[Process]
-    B --> C[End]
-\`\`\`
-
-### Admonitions
-
-Use admonitions for important information:
-
-```
-:::info
-This is an informational note.
-:::
-
-:::warning
-This is a warning.
-:::
-
-:::danger
-This is dangerous information.
-:::
-```
+- Vercel
+- Netlify
+- AWS S3 + CloudFront
+- Any static hosting service
 
 ## 🤝 Contributing
 
-1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b docs/new-section`
-3. **Make your changes**: Follow the writing guidelines above
-4. **Test locally**: Run `npm start` to preview changes
-5. **Submit a pull request**: Include description of changes
+When contributing to the documentation:
 
-### Content Guidelines
+1. **Follow the style guide** - Maintain consistency with existing docs
+2. **Test locally** - Run `npm start` to preview changes
+3. **Check for broken links** - Run `npm run build` to catch broken links
+4. **Use proper formatting** - Follow Markdown best practices
+5. **Add examples** - Include code examples where helpful
+6. **Update sidebars** - Add new pages to `sidebars.js`
 
-- Use clear, concise language
-- Include practical code examples
-- Add diagrams for complex concepts
-- Keep examples up-to-date with the latest API
-- Follow the existing documentation structure
+## 📚 Resources
 
-## 📖 Documentation Sections
+- [Docusaurus Documentation](https://docusaurus.io/docs)
+- [Markdown Guide](https://www.markdownguide.org/)
+- [Mermaid Documentation](https://mermaid.js.org/)
+- [Midil Kit Repository](https://github.com/midil-labs/midil-kit)
 
-- **Introduction**: Overview and key concepts
-- **Getting Started**: Installation and quick start guide
-- **Core Modules**: Detailed module documentation
-- **API Reference**: Complete API documentation
-- **Examples**: Real-world usage examples
-- **Development**: Contributing and development guides
+## 🐛 Issues
 
-## 🔧 Development
+If you find issues with the documentation:
 
-### Local Development
-
-```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm start
-
-# Build for production
-npm run build
-
-# Serve production build locally
-npm run serve
-
-# Clear cache
-npm run clear
-```
-
-### Writing and Testing
-
-1. **Write content** in markdown files
-2. **Test locally** with `npm start`
-3. **Check links** and formatting
-4. **Validate examples** against actual code
-5. **Build and test** production version
-
-### Deployment
-
-The documentation is automatically deployed when changes are merged to the main branch.
-
-For manual deployment:
-
-```bash
-# Build the documentation
-npm run build
-
-# Deploy to GitHub Pages
-npm run deploy
-```
+1. Check if the issue is with the docs or the library itself
+2. Open an issue on [GitHub](https://github.com/midil-labs/midil-kit/issues)
+3. Use the `documentation` label for docs-specific issues
 
 ## 📄 License
 
-This documentation is part of the Midil Kit project and is licensed under the Apache License 2.0.
+The documentation is part of the Midil Kit project and follows the same license.
 
 ---
 
-Built with ❤️ using [Docusaurus](https://docusaurus.io/) by the Midil.io team.
+Built with ❤️ by the Midil.io team using [Docusaurus](https://docusaurus.io/).
